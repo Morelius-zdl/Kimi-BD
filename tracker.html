@@ -251,10 +251,12 @@ select.tiersel[data-v="Tier 3"] { color: var(--muted); }
     <section class="panel" aria-label="Providers used today">
       <div class="rowtop"><div class="label">What accounts without Kimi use today</div><button class="linkbtn" id="provClear" type="button" hidden>clear</button></div>
       <div class="pbars" id="pbars"></div>
+      <p class="note"><span id="barsCount"></span> Light bars are open-model providers: those buyers already run non-closed models, so adding Kimi is a smaller step. Click a bar to filter the table.</p>
     </section>
     <section class="panel" aria-label="Warmest targets">
       <div class="rowtop"><div class="label" id="hotTitle"></div><span class="count" id="hotSub"></span></div>
       <ul class="hot" id="hot"></ul>
+      <p class="note" id="hotNote"></p>
     </section>
   </div>
 
@@ -296,8 +298,16 @@ select.tiersel[data-v="Tier 3"] { color: var(--muted); }
         <select id="perF"><option selected>25</option><option>50</option><option>100</option><option value="0">All</option></select>
       </label>
     </div>
+    <p class="note">Tier and "My stage" are saved in this browser only. An edited tier shows "was Tier X"; set it back to remove the mark.</p>
   </section>
 
+  <details class="sources">
+    <summary>Sources and method <span>snapshot 21 Oct 2026</span></summary>
+    <div class="ptable-wrap">
+      <p class="note" style="max-width:none">Accounts, providers, motions and starting tiers come from the Kimi Global Target Account Database (490 accounts, one public source per row, linked in each row's detail). "Has Kimi" means a public Kimi integration, distribution path or partnership was found. "No Kimi" means the account has a known AI provider but no public Kimi relationship. "To check" means the research found no public AI deal at all, so the account still needs validating; that does not prove no private relationship exists. For 12 cloud accounts the detail also shows a separate hosting check of the Kimi, Qwen, DeepSeek and Mistral catalogs from the same date. Where the two disagree the row is flagged "check" — validate before outreach.</p>
+      <ul class="note" id="srcList" style="max-width:none; padding-left:18px; display:flex; flex-direction:column; gap:4px; margin-top:10px"></ul>
+    </div>
+  </details>
   <footer>Unofficial tool by Marco Morello for interview preparation. Not affiliated with or endorsed by Moonshot AI.</footer>
 </div>
 
@@ -365,6 +375,7 @@ ACC.forEach(a => { if (tiers[a.id]) a.pri = tiers[a.id]; });
 function bars() {
   const nn = ACC.filter(a => !a.isEx);
   const none = nn.filter(a => !a.provs.length).length;
+  $("barsCount").textContent = `Counts across the ${nn.length} accounts with no public Kimi relationship; ${none} of them have no public AI deal at all.`;
   const counts = PROV.filter(p => p[0] !== "Kimi").map(p => [p[0], p[2], nn.filter(a => a.provs.includes(p[0])).length]).filter(x => x[2] > 0).sort((a, b) => b[2] - a[2]);
   const max = counts[0][2];
   $("pbars").innerHTML = counts.map(([n, o, c]) => `<button type="button" class="pbar ${o ? "open" : ""}" data-p="${n}" aria-pressed="${state.prov === n}"><span>${n}</span><span class="track"><span class="fill" style="display:block;width:${(c / max * 100).toFixed(1)}%"></span></span><span class="n">${c}</span></button>`).join("");
@@ -381,6 +392,7 @@ function hot() {
   $("hotTitle").textContent = P ? `Top accounts using ${P}` : "Warmest: Tier 1, already on open models";
   $("hotSub").textContent = `${list.length} account${list.length === 1 ? "" : "s"}`;
   $("hot").innerHTML = shown.map(a => `<li><button type="button" class="linkbtn hotname" data-id="${a.id}" style="color:var(--ink);text-decoration:none;font-weight:600">${esc(a.c)}</button> <span class="tier t${a.pri.slice(-1)}" style="margin-left:6px">${esc(a.pri)}</span><br><span>${esc(a.ind)} · ${esc(a.reg)}${a.provs.length > 1 ? " · also " + esc(a.provs.filter(x => x !== P).join(", ")) : ""}</span></li>`).join("") || `<li><span>None</span></li>`;
+  $("hotNote").textContent = P ? (list.length > shown.length ? `Showing ${shown.length}, highest priority first. The full list is in the table below.` : "Highest priority first. Click a name to open it in the table.") : "Click a provider on the left to see the top accounts using it. Click a name to open it in the table.";
   $("hot").querySelectorAll(".hotname").forEach(b => b.addEventListener("click", () => {
     state.open.add(b.dataset.id);
     const idx = ACC.filter(match).findIndex(x => x.id === b.dataset.id);
@@ -497,7 +509,7 @@ $("reset").addEventListener("click", () => {
   Object.assign(state, { q: "", seg: "all", st: "all", reg: "all", pri: "all", stage: "all", prov: null, page: 1 });
   $("q").value = ""; $("stageF").value = "all"; $("regF").value = "all"; render();
 });
-if ($("srcList")) $("srcList").innerHTML = HOST_SOURCES.map(([t, u]) => `<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)} ↗</a></li>`).join("");
+$("srcList").innerHTML = HOST_SOURCES.map(([t, u]) => `<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)} ↗</a></li>`).join("");
 render();
 </script>
 

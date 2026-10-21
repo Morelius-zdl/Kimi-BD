@@ -102,19 +102,19 @@ footer { margin-top: 40px; font-size: 12px; color: var(--ink); text-align: right
 
   <section class="tool" id="tracker" aria-label="Model Availability Tracker">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#home">&larr; Back</a><span class="stepinfo"><span class="n">Step 1 of 3 · Find</span><span class="q">Where should Kimi go next?</span></span><a class="nexttop" href="#deal">Next: Deal Calculator &rarr;</a></div>
-    <iframe scrolling="no" data-src="tracker.html" title="Model Availability Tracker"></iframe>
+    <iframe data-src="tracker.html" title="Model Availability Tracker"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#home"><small>&larr; Back</small>Home</a><a class="stepbtn next" href="#deal"><small>Next · Step 2 &rarr;</small>Deal Calculator</a></div>
   </section>
 
   <section class="tool" id="deal" aria-label="Kimi Deal Calculator">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#tracker" title="Back to Tracker">&larr; Back</a><span class="stepinfo"><span class="n">Step 2 of 3 · Win</span><span class="q">Does Kimi win this customer's workload?</span></span><a class="nexttop" href="#partner">Next: Partner Simulator &rarr;</a></div>
-    <iframe scrolling="no" data-src="deal.html" title="Kimi Deal Calculator"></iframe>
+    <iframe data-src="deal.html" title="Kimi Deal Calculator"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#tracker"><small>&larr; Previous · Step 1</small>Tracker</a><a class="stepbtn next" href="#partner"><small>Next · Step 3 &rarr;</small>Partner Simulator</a></div>
   </section>
 
   <section class="tool" id="partner" aria-label="Kimi Partner Simulator">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#deal" title="Back to Deal Calculator">&larr; Back</a><span class="stepinfo"><span class="n">Step 3 of 3 · Scale</span><span class="q">How does a partner deal scale, and is it fair to both sides?</span></span><a class="nexttop" href="#home">Back to start &#8634;</a></div>
-    <iframe scrolling="no" data-src="partner.html" title="Kimi Partner Simulator"></iframe>
+    <iframe data-src="partner.html" title="Kimi Partner Simulator"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#deal"><small>&larr; Previous · Step 2</small>Deal Calculator</a><a class="stepbtn next" href="#home"><small>Done</small>Thank you!</a></div>
   </section>
 
@@ -125,8 +125,7 @@ footer { margin-top: 40px; font-size: 12px; color: var(--ink); text-align: right
 /* Fit each embedded tool to its content and blend it into this page. */
 const EMBED_CSS = `html, body { background: transparent !important; }
 #sky, footer { display: none !important; }
-html, body { overflow: hidden !important; }
-body { min-height: 0 !important; margin: 0 !important; padding: 12px 0 8px !important; }`;
+body { min-height: 0 !important; padding: 12px 0 8px !important; }`;
 document.querySelectorAll("iframe").forEach(fr => {
   const fit = () => {
     if (fr.closest("[hidden]") || !fr.src) return;
