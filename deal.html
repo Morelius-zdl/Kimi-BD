@@ -242,16 +242,6 @@ footer { font-size: 12px; color: var(--ink); font-family: var(--mono); }
     </section>
   </div>
 
-  <details class="sources" id="sources">
-    <summary>Prices &amp; sources <span>List prices per 1M tokens · updated 21 Oct 2026</span></summary>
-    <div class="ptable-wrap">
-      <table class="ptable">
-        <thead><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr></thead>
-        <tbody id="ptbody"></tbody>
-      </table>
-      <p class="note" style="margin-top:12px">Cached prices marked ≈ are estimated at 10% of input where none is published. Real bills also depend on tokens used per task, discounts and batch pricing. Example workloads are illustrative.</p>
-    </div>
-  </details>
   <footer>Unofficial tool by Marco Morello for interview preparation. Not affiliated with or endorsed by Moonshot AI.</footer>
 </div>
 
@@ -337,7 +327,7 @@ function buildPriceTable() {
       html += `<tr><td>${m.name}${longNote}</td><td>${money(m.in)}</td><td class="${est ? "est" : ""}">${est ? "≈" : ""}${money(m.cache)}</td><td>${money(m.out)}</td></tr>`;
     }
   }
-  document.getElementById("ptbody").innerHTML = html;
+  const ptb = document.getElementById("ptbody"); if (ptb) ptb.innerHTML = html;
 }
 const PRESETS = [
   {"group": "Developer & AI products", "id": "coding", "label": "Coding agents for dev teams", "desc": "Developers running coding agents all day; long context, heavy caching.", "hint": "developers", "users": 200, "tasks": 30, "inTok": 60000, "outTok": 2000, "cache": 85, "kimi": "k3", "rival": "opus55"},

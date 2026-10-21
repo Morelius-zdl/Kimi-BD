@@ -301,13 +301,6 @@ select.tiersel[data-v="Tier 3"] { color: var(--muted); }
     <p class="note">Tier and "My stage" are saved in this browser only. An edited tier shows "was Tier X"; set it back to remove the mark.</p>
   </section>
 
-  <details class="sources">
-    <summary>Sources and method <span>snapshot 21 Oct 2026</span></summary>
-    <div class="ptable-wrap">
-      <p class="note" style="max-width:none">Accounts, providers, motions and starting tiers come from the Kimi Global Target Account Database (490 accounts, one public source per row, linked in each row's detail). "Has Kimi" means a public Kimi integration, distribution path or partnership was found. "No Kimi" means the account has a known AI provider but no public Kimi relationship. "To check" means the research found no public AI deal at all, so the account still needs validating; that does not prove no private relationship exists. For 12 cloud accounts the detail also shows a separate hosting check of the Kimi, Qwen, DeepSeek and Mistral catalogs from the same date. Where the two disagree the row is flagged "check" — validate before outreach.</p>
-      <ul class="note" id="srcList" style="max-width:none; padding-left:18px; display:flex; flex-direction:column; gap:4px; margin-top:10px"></ul>
-    </div>
-  </details>
   <footer>Unofficial tool by Marco Morello for interview preparation. Not affiliated with or endorsed by Moonshot AI.</footer>
 </div>
 
@@ -509,7 +502,7 @@ $("reset").addEventListener("click", () => {
   Object.assign(state, { q: "", seg: "all", st: "all", reg: "all", pri: "all", stage: "all", prov: null, page: 1 });
   $("q").value = ""; $("stageF").value = "all"; $("regF").value = "all"; render();
 });
-$("srcList").innerHTML = HOST_SOURCES.map(([t, u]) => `<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)} ↗</a></li>`).join("");
+if ($("srcList")) $("srcList").innerHTML = HOST_SOURCES.map(([t, u]) => `<li><a href="${u}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(t)} ↗</a></li>`).join("");
 render();
 </script>
 
