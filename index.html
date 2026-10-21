@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta charset="utf-8">
 <title>Kimi BD Toolkit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -64,7 +64,7 @@ iframe { display: block; width: 100%; border: 0; height: 900px; background: tran
 .flow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; width: 100%; margin-top: 10px; align-items: stretch; }
 .flow .arrow { align-self: center; font-size: 22px; color: var(--blue-l); }
 @media (max-width: 800px) { .flow { grid-template-columns: minmax(0, 1fr); } .flow .arrow { justify-self: center; transform: rotate(90deg); } }
-.start { align-self: center; margin-top: 8px; font-family: var(--mono); font-weight: 600; font-size: 15px; color: #000; background: var(--accent); text-decoration: none; padding: 12px 18px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+.start { align-self: center; margin-top: 18px; font-family: var(--mono); font-weight: 600; font-size: 24px; letter-spacing: 0.02em; color: #000; background: var(--accent); text-decoration: none; padding: 16px 56px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
 .start:hover { background: var(--blue-l); }
 .start:focus-visible, .stepbtn:focus-visible, .nexttop:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
 nav.top .sep { color: var(--dim); font-family: var(--mono); }
@@ -97,24 +97,24 @@ footer { margin-top: 40px; font-size: 12px; color: var(--ink); text-align: right
       <span class="arrow" aria-hidden="true">&rarr;</span>
       <a class="card" href="#partner"><span class="n">Step 3 · Scale</span><span class="t">Kimi Partner Simulator</span><span class="q">Revenue share or wholesale, plus rewards: does the partnership work for both sides over 12 to 36 months?</span></a>
     </div>
-    <a class="start" href="#tracker">Start: Model Availability Tracker &rarr;</a>
+    <a class="start" href="#tracker">Start &rarr;</a>
   </header>
 
   <section class="tool" id="tracker" aria-label="Model Availability Tracker">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#home">&larr; Back</a><span class="stepinfo"><span class="n">Step 1 of 3 · Find</span><span class="q">Where should Kimi go next?</span></span><a class="nexttop" href="#deal">Next: Deal Calculator &rarr;</a></div>
-    <iframe data-src="tracker.html" title="Model Availability Tracker"></iframe>
+    <iframe scrolling="no" data-src="tracker.html" title="Model Availability Tracker"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#home"><small>&larr; Back</small>Home</a><a class="stepbtn next" href="#deal"><small>Next · Step 2 &rarr;</small>Deal Calculator</a></div>
   </section>
 
   <section class="tool" id="deal" aria-label="Kimi Deal Calculator">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#tracker" title="Back to Tracker">&larr; Back</a><span class="stepinfo"><span class="n">Step 2 of 3 · Win</span><span class="q">Does Kimi win this customer's workload?</span></span><a class="nexttop" href="#partner">Next: Partner Simulator &rarr;</a></div>
-    <iframe data-src="deal.html" title="Kimi Deal Calculator"></iframe>
+    <iframe scrolling="no" data-src="deal.html" title="Kimi Deal Calculator"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#tracker"><small>&larr; Previous · Step 1</small>Tracker</a><a class="stepbtn next" href="#partner"><small>Next · Step 3 &rarr;</small>Partner Simulator</a></div>
   </section>
 
   <section class="tool" id="partner" aria-label="Kimi Partner Simulator">
     <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#deal" title="Back to Deal Calculator">&larr; Back</a><span class="stepinfo"><span class="n">Step 3 of 3 · Scale</span><span class="q">How does a partner deal scale, and is it fair to both sides?</span></span><a class="nexttop" href="#home">Back to start &#8634;</a></div>
-    <iframe data-src="partner.html" title="Kimi Partner Simulator"></iframe>
+    <iframe scrolling="no" data-src="partner.html" title="Kimi Partner Simulator"></iframe>
     <div class="stepnav"><a class="stepbtn" href="#deal"><small>&larr; Previous · Step 2</small>Deal Calculator</a><a class="stepbtn next" href="#home"><small>Done</small>Thank you!</a></div>
   </section>
 
@@ -125,7 +125,8 @@ footer { margin-top: 40px; font-size: 12px; color: var(--ink); text-align: right
 /* Fit each embedded tool to its content and blend it into this page. */
 const EMBED_CSS = `html, body { background: transparent !important; }
 #sky, footer { display: none !important; }
-body { min-height: 0 !important; padding: 12px 0 8px !important; }`;
+html, body { overflow: hidden !important; }
+body { min-height: 0 !important; margin: 0 !important; padding: 12px 0 8px !important; }`;
 document.querySelectorAll("iframe").forEach(fr => {
   const fit = () => {
     if (fr.closest("[hidden]") || !fr.src) return;
@@ -206,5 +207,3 @@ addEventListener("load", () => window.scrollTo(0, 0));
   if (!reduce) setInterval(() => { t++; draw(); }, 500);
 })();
 </script>
-
-</body></html>
