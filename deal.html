@@ -1,0 +1,613 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kimi Deal Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a two-panel console floating over a dithered night sky. Inputs left, deal readout right; stacks on phones.
+   Deliberately single-theme (dark, monochrome, pixel type), so no light-mode tokens. */
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --panel: rgba(8, 8, 10, 0.86);
+  --ink: #f2f2f2;
+  --muted: #8a8a8a;
+  --dim: #3c3c3c;
+  --line: #4a4a4a;
+  --accent: #ffffff;
+  --muted-fill: #7a7a7a;
+  --good: #bdbdbd;
+  --green: #4ade80;
+  --b-out: #3b82f6;
+  --b-unc: #93c5fd;
+  --b-cache: #1e3a8a;
+  --yellow: #facc15;
+  --red: #f87171;
+  --pixel: "Silkscreen", "Courier New", monospace;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --body: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --display: "Silkscreen", "Courier New", monospace;
+  --cut: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px; position: relative; min-height: 100%;
+}
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; image-rendering: pixelated; }
+.wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+header { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.tag { font-family: var(--pixel); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+header h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(28px, 5vw, 44px); margin: 0; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; }
+header h1 .br { color: var(--muted); }
+header p { margin: 0; color: var(--muted); max-width: 64ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); clip-path: var(--cut); padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; backdrop-filter: blur(2px); }
+.label { font-family: var(--pixel); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 400; }
+.label::before { content: "[ "; color: var(--dim); }
+.label::after { content: " ]"; color: var(--dim); }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label:not(.label) { font-size: 13px; color: var(--ink); }
+.field small { color: var(--muted); font-size: 11.5px; }
+input, select { font: inherit; font-family: var(--mono); font-size: 14px; padding: 9px 11px; border-radius: 0; border: 1px solid var(--line); background: #050505; color: var(--ink); width: 100%; }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
+select optgroup { font-family: var(--mono); color: var(--muted); background: #050505; }
+select option { color: var(--ink); background: #050505; }
+input:hover, select:hover { border-color: var(--muted); }
+input:focus-visible, select:focus-visible, .copy:focus-visible, details.sources summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+.divider { border: 0; border-top: 1px dashed var(--dim); margin: 2px 0; }
+.price { font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.headline { display: flex; flex-direction: column; gap: 6px; }
+.headline .big { font-family: var(--mono); font-weight: 600; font-size: clamp(40px, 7vw, 60px); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.headline .sub { color: var(--muted); font-size: 13px; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.cell { border: 1px solid var(--line); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%); }
+.cell .v { font-family: var(--mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cell .k { font-size: 11.5px; color: var(--muted); }
+.saving { background: var(--accent); border-color: var(--accent); }
+.saving .v, .saving .k { color: #000; }
+.saving.neg { background: transparent; border: 1px dashed var(--muted); }
+.saving.neg .v { color: var(--ink); }
+.saving.neg .k { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td { padding: 8px 0; border-bottom: 1px dashed var(--dim); }
+td:last-child { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.bar { height: 12px; background: #111; display: flex; border: 1px solid var(--line); }
+.bar span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink); }
+.legend i { display: inline-block; width: 12px; height: 12px; margin-right: 7px; vertical-align: -2px; border: 1px solid rgba(255,255,255,0.35); }
+.bar { height: 16px; }
+.copy { align-self: flex-start; font-family: var(--pixel); font-size: 12px; padding: 8px 14px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.copy::before { content: "<< "; }
+.copy::after { content: " >>"; }
+.copy:hover { background: var(--accent); color: #000; }
+.bd-wrap { overflow-x: auto; }
+.bd { min-width: 440px; }
+.bd th { text-align: right; font-family: var(--pixel); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 400; padding: 6px 0 8px; border-bottom: 1px solid var(--line); }
+.bd th:first-child, .bd td:first-child { text-align: left; }
+.bd td { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; vertical-align: top; }
+.bd td:first-child { font-family: var(--body); }
+.bd td small { display: block; color: var(--muted); font-size: 11px; }
+.bd td i { display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px; }
+.bd tr.total td { border-top: 1px solid var(--line); border-bottom: 0; font-weight: 600; }
+.game { border: 1px solid var(--line); background: #020205; display: flex; flex-direction: column; }
+.game canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; cursor: pointer; aspect-ratio: 12 / 5; max-width: 100%; }
+.game canvas:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.game-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-top: 1px dashed var(--dim); font-family: var(--pixel); font-size: 11px; color: var(--muted); }
+.game-ctrls { display: flex; gap: 6px; }
+.game-ctrls button { font-family: var(--pixel); font-size: 11px; background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 5px 10px; cursor: pointer; touch-action: manipulation; }
+.game-ctrls button:active, .game-ctrls button:hover { border-color: var(--accent); }
+.health { border: 1px solid var(--line); border-left: 4px solid var(--hc, var(--line)); padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start; }
+.health.green { --hc: var(--green); }
+.health.yellow { --hc: var(--yellow); }
+.health.red { --hc: var(--red); }
+.health .arrow { font-family: var(--mono); font-weight: 600; font-size: 30px; line-height: 1; color: var(--hc); min-width: 30px; text-align: center; }
+.health .hbody { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.health .htitle { font-family: var(--mono); font-weight: 600; font-size: 15px; color: var(--hc); }
+.health ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.health .next { font-size: 13px; color: var(--muted); }
+.health .next b { color: var(--ink); font-weight: 600; }
+.note { font-size: 11.5px; color: var(--muted); margin: 0; }
+details.sources { background: var(--panel); border: 1px solid var(--line); padding: 2px 22px; clip-path: var(--cut); }
+details.sources summary { cursor: pointer; padding: 14px 0; font-family: var(--pixel); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; list-style: none; }
+details.sources summary::-webkit-details-marker { display: none; }
+details.sources summary::before { content: ">"; margin-right: 8px; }
+details.sources[open] summary::before { content: "v"; }
+details.sources summary span { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: auto; }
+.ptable-wrap { overflow-x: auto; padding-bottom: 18px; }
+.ptable { min-width: 520px; }
+.ptable th { text-align: left; font-family: var(--pixel); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--line); font-weight: 400; }
+.ptable th:not(:first-child), .ptable td:not(:first-child) { text-align: right; font-family: var(--mono); }
+.ptable td:first-child { text-align: left; }
+.ptable tr.grp td { padding-top: 18px; font-family: var(--pixel); font-size: 12px; border-bottom: 1px solid var(--line); }
+.ptable tr.grp a { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-left: 10px; }
+.ptable tr.grp a:hover { color: var(--accent); }
+.ptable .est { color: var(--muted); }
+footer { font-size: 12px; color: var(--ink); font-family: var(--mono); }
+@media (prefers-reduced-motion: reduce) { #sky { opacity: 0.7; } }
+</style>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <span class="tag">&lt;&lt; Moonshot AI &gt;&gt;</span>
+    <h1><span class="br">[</span> Kimi Deal Calculator <span class="br">]</span></h1>
+    <p>Turn a customer's AI workload into monthly tokens, what Kimi earns, and what the customer saves against a closed model. Pick an example, then change the numbers.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Workload inputs">
+      <div class="field"><label for="preset" class="label">Example workload</label>
+        <select id="preset"></select>
+        <small id="presetDesc"></small>
+      </div>
+
+      <hr class="divider">
+      <div class="label">Workload</div>
+      <div class="fields">
+        <div class="field"><label for="users">Users or workflows</label><input id="users" type="number" min="0" step="1"><small id="usersHint">developers, agents, lawyers…</small></div>
+        <div class="field"><label for="tasks">Tasks per user per day</label><input id="tasks" type="number" min="0" step="1"></div>
+        <div class="field"><label for="inTok">Input tokens per task</label><input id="inTok" type="number" min="0" step="500"><small>prompt + context sent</small></div>
+        <div class="field"><label for="outTok">Output tokens per task</label><input id="outTok" type="number" min="0" step="100"><small>answer generated</small></div>
+        <div class="field"><label for="cache">Cache hit rate (%)</label><input id="cache" type="number" min="0" max="100" step="5"><small>repeated context, billed ~90% cheaper</small></div>
+        <div class="field"><label for="days">Working days per month</label><input id="days" type="number" min="1" max="31" step="1"></div>
+      </div>
+
+      <hr class="divider">
+      <div class="label">Models and channel</div>
+      <div class="fields">
+        <div class="field"><label for="kimi">Kimi model</label><select id="kimi"></select><span class="price" id="kimiPrice"></span></div>
+        <div class="field"><label for="rival">Compare against</label><select id="rival"></select><span class="price" id="rivalPrice"></span></div>
+        <div class="field"><label for="channel">Sold through</label>
+          <select id="channel">
+            <option value="direct">Kimi API (direct)</option>
+            <option value="partner">Partner cloud (revenue share)</option>
+          </select>
+        </div>
+        <div class="field" id="shareField"><label for="share">Kimi's revenue share (%)</label><input id="share" type="number" min="0" max="100" step="5"><small>Moonshot reportedly asks up to 30%</small></div>
+      </div>
+      <hr class="divider">
+      <div class="label">Token cost breakdown · per month</div>
+      <div class="bd-wrap">
+        <table class="bd">
+          <thead>
+            <tr><th>Token type</th><th>Tokens</th><th id="bdKimiH">Kimi</th><th id="bdRivalH">Rival</th></tr>
+          </thead>
+          <tbody id="bdBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Deal readout" aria-live="polite">
+      <div class="headline">
+        <div class="label">New ARR for Kimi</div>
+        <div class="big" id="arr">$0</div>
+        <div class="sub" id="arrSub"></div>
+      </div>
+
+      <div class="compare">
+        <div class="cell"><span class="k" id="kimiCostLabel">Customer pays on Kimi / month</span><span class="v" id="kimiCost">$0</span></div>
+        <div class="cell"><span class="k" id="rivalCostLabel">On closed model / month</span><span class="v" id="rivalCost">$0</span></div>
+        <div class="cell saving" id="saveCell"><span class="k">Customer saving</span><span class="v" id="savePct">0%</span></div>
+        <div class="cell saving" id="saveCell2"><span class="k">Saving per year</span><span class="v" id="saveYear">$0</span></div>
+      </div>
+
+      <div>
+        <div class="label" style="margin-bottom:8px">Where the Kimi bill comes from</div>
+        <div class="bar" id="bar"></div>
+        <div class="legend" style="margin-top:8px">
+          <span><i style="background:var(--b-out)"></i>Output</span>
+          <span><i style="background:var(--b-unc)"></i>Uncached input</span>
+          <span><i style="background:var(--b-cache)"></i>Cached input</span>
+        </div>
+      </div>
+
+      <table>
+        <tbody>
+          <tr><td>Tasks per month</td><td id="tTasks"></td></tr>
+          <tr><td>Tokens per month</td><td id="tTokens"></td></tr>
+          <tr><td>Cost per task on Kimi</td><td id="tPerTask"></td></tr>
+          <tr><td>Cost per task on closed model</td><td id="tPerTaskR"></td></tr>
+        </tbody>
+      </table>
+
+      <div class="label">Deal health</div>
+      <div class="health" id="health">
+        <div class="arrow" id="hArrow" aria-hidden="true"></div>
+        <div class="hbody">
+          <div class="htitle" id="hTitle"></div>
+          <ul id="hReasons"></ul>
+          <div class="next" id="hNext"></div>
+        </div>
+      </div>
+          <div class="label">Token Defender · break time</div>
+      <div class="game">
+        <canvas id="game" width="480" height="200" aria-label="Token Defender mini game. Use arrow keys or A and D to move, space to fire." tabindex="0"></canvas>
+        <div class="game-bar">
+          <span id="gScore">Score 0</span>
+          <span class="game-ctrls">
+            <button type="button" id="gLeft" aria-label="Move left">&lt;</button>
+            <button type="button" id="gFire">Fire</button>
+            <button type="button" id="gRight" aria-label="Move right">&gt;</button>
+          </span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details class="sources" id="sources">
+    <summary>Prices &amp; sources <span>List prices per 1M tokens · updated 21 Oct 2026</span></summary>
+    <div class="ptable-wrap">
+      <table class="ptable">
+        <thead><tr><th>Model</th><th>Input</th><th>Cached input</th><th>Output</th></tr></thead>
+        <tbody id="ptbody"></tbody>
+      </table>
+      <p class="note" style="margin-top:12px">Cached prices marked ≈ are estimated at 10% of input where none is published. Real bills also depend on tokens used per task, discounts and batch pricing. Example workloads are illustrative.</p>
+    </div>
+  </details>
+  <footer>Unofficial tool by Marco Morello for interview preparation. Not affiliated with or endorsed by Moonshot AI.</footer>
+</div>
+
+<script>
+const MODELS = {
+  k3:   { name: "Kimi K3",                    in: 3,    cache: 0.30, out: 15 },
+  k27h: { name: "Kimi K2.7 Code Highspeed",   in: 1.90, cache: 0.38, out: 8 },
+  k27:  { name: "Kimi K2.7 Code",             in: 0.95, cache: 0.19, out: 4 },
+  k26:  { name: "Kimi K2.6",                  in: 0.95, cache: 0.16, out: 4 },
+};
+const RIVALS = {
+  "Anthropic": {
+    fable51: { name: "Claude Fable 5.1", in: 10, cache: 0.25, out: 50 },
+    opus55:  { name: "Claude Opus 5.5",  in: 4,  cache: 0.20, out: 20 },
+    opus5:   { name: "Claude Opus 5",    in: 5,  cache: 0.50, out: 25 },
+    sonnet55:{ name: "Claude Sonnet 5.5",in: 2,  cache: 0.10, out: 10 },
+    haiku55: { name: "Claude Haiku 5.5", in: 0.10, cache: 0.01, out: 0.50, long: { above: 100000, in: 0.50, cache: 0.05, out: 2.50 } },
+  },
+  "OpenAI": {
+    astra:  { name: "GPT-6 Astra",             in: 10, cache: 1.00, out: 50 },
+    sol:    { name: "GPT-5.6 Sol (promo)",     in: 4,  cache: 0.40, out: 20 },
+    solstd: { name: "GPT-5.6 Sol (standard)",  in: 5,  cache: 0.50, out: 30 },
+    terra:  { name: "GPT-5.6 Terra",           in: 2,  cache: 0.20, out: 12 },
+    luna:   { name: "GPT-5.6 Luna",            in: 0.20, cache: 0.02, out: 1.20 },
+  },
+  "Google": {
+    gem31pro:  { name: "Gemini 3.1 Pro",        in: 2,    cache: 0.20,  out: 12,   long: { above: 200000, in: 4, cache: 0.40, out: 18 } },
+    gem37flash:{ name: "Gemini 3.7 Flash",      in: 0.75, cache: 0.075, out: 3.75 },
+    gem35flash:{ name: "Gemini 3.5 Flash",      in: 1.50, cache: 0.15,  out: 9 },
+    gem35lite: { name: "Gemini 3.5 Flash-Lite", in: 0.30, cache: 0.03,  out: 2.50 },
+  },
+  "xAI": {
+    grok47: { name: "Grok 4.7", in: 2, cache: 0.50, out: 6, long: { above: 200000, in: 4, cache: 1.00, out: 12 } },
+    grok43: { name: "Grok 4.3", in: 1.25, cache: 0.20, out: 2.50, long: { above: 200000, in: 2.50, cache: 0.40, out: 5 } },
+  },
+  "Mistral (France)": {
+    mlarge3:  { name: "Mistral Large 3",   in: 0.50, cache: 0.05,  out: 1.50 },
+    mmed35:   { name: "Mistral Medium 3.5",in: 1.50, cache: 0.15,  out: 7.50 },
+    devstral2:{ name: "Devstral 2",        in: 0.40, cache: 0.04,  out: 2 },
+    msmall4:  { name: "Mistral Small 4",   in: 0.15, cache: 0.015, out: 0.60 },
+  },
+  "DeepSeek": {
+    dsv4pro:   { name: "DeepSeek V4 Pro",   in: 1.74, cache: 0.0145, out: 3.48 },
+    dsv4flash: { name: "DeepSeek V4 Flash", in: 0.14, cache: 0.0028, out: 0.28 },
+  },
+  "Alibaba Qwen": {
+    qwmax: { name: "Qwen3.8 Max",   in: 2,    cache: 0.20,  out: 6 },
+    qwplus:{ name: "Qwen3.7 Plus",  in: 0.40, cache: 0.04,  out: 1.60, long: { above: 256000, in: 1.20, cache: 0.12, out: 4.80 } },
+    qwflash:{ name: "Qwen3.8 Flash",in: 0.15, cache: 0.015, out: 0.47 },
+  },
+  "Zhipu GLM": {
+    glm53:  { name: "GLM-5.3",       in: 1.40, cache: 0.26, out: 4.40 },
+    glm53f: { name: "GLM-5.3 Flash", in: 0.15, cache: 0.03, out: 0.50 },
+  },
+  "MiniMax": {
+    mm3: { name: "MiniMax M3", in: 0.30, cache: 0.03, out: 1.20 },
+  },
+};
+const RIVAL_FLAT = Object.assign({}, ...Object.values(RIVALS));
+const SOURCES = {
+  "Kimi": "https://platform.kimi.ai/docs/pricing/chat",
+  "Anthropic": "https://platform.claude.com/docs/en/about-claude/pricing",
+  "OpenAI": "https://developers.openai.com/api/docs/pricing",
+  "Google": "https://ai.google.dev/gemini-api/docs/pricing",
+  "xAI": "https://docs.x.ai/docs/models",
+  "Mistral (France)": "https://mistral.ai/pricing",
+  "DeepSeek": "https://api-docs.deepseek.com/quick_start/pricing",
+  "Alibaba Qwen": "https://www.alibabacloud.com/help/en/model-studio/models",
+  "Zhipu GLM": "https://docs.z.ai/guides/overview/pricing",
+  "MiniMax": "https://platform.minimax.io/docs/pricing",
+};
+const ESTIMATED_CACHE = new Set(["terra","luna","mmed35","devstral2","qwmax","qwplus","qwflash","mm3"]);
+const money = n => "$" + (n >= 1 ? n.toFixed(2).replace(/\.00$/, "") : String(+n.toFixed(4)));
+const priceLine = (m, key) => `${money(m.in)} in · ${ESTIMATED_CACHE.has(key) ? "≈" : ""}${money(m.cache)} cached · ${money(m.out)} out per 1M tokens`;
+function buildPriceTable() {
+  const groups = Object.assign({ "Kimi": MODELS }, RIVALS);
+  let html = "";
+  for (const [g, models] of Object.entries(groups)) {
+    html += `<tr class="grp"><td colspan="4">${g}<a href="${SOURCES[g]}" target="_blank" rel="noopener">Official pricing ↗</a></td></tr>`;
+    for (const [k, m] of Object.entries(models)) {
+      const est = ESTIMATED_CACHE.has(k);
+      const longNote = m.long ? ` <span class="est">(higher above ${m.long.above/1000}k-token prompts)</span>` : "";
+      html += `<tr><td>${m.name}${longNote}</td><td>${money(m.in)}</td><td class="${est ? "est" : ""}">${est ? "≈" : ""}${money(m.cache)}</td><td>${money(m.out)}</td></tr>`;
+    }
+  }
+  document.getElementById("ptbody").innerHTML = html;
+}
+const PRESETS = [
+  {"group": "Developer & AI products", "id": "coding", "label": "Coding agents for dev teams", "desc": "Developers running coding agents all day; long context, heavy caching.", "hint": "developers", "users": 200, "tasks": 30, "inTok": 60000, "outTok": 2000, "cache": 85, "kimi": "k3", "rival": "opus55"},
+  {"group": "Developer & AI products", "id": "review", "label": "Automated code review & testing", "desc": "A bot reviewing pull requests and writing tests in CI.", "hint": "review pipelines (1 = whole system); tasks = PRs per day", "users": 1, "tasks": 1500, "inTok": 30000, "outTok": 1500, "cache": 60, "kimi": "k27", "rival": "sonnet55"},
+  {"group": "Developer & AI products", "id": "copilot", "label": "AI product / SaaS copilot", "desc": "An assistant built into a SaaS product, used by its customers.", "hint": "product (1 = whole product); tasks = requests per day", "users": 1, "tasks": 50000, "inTok": 6000, "outTok": 700, "cache": 60, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Developer & AI products", "id": "soc", "label": "Cybersecurity & SOC analyst assistant", "desc": "Triaging alerts and reading logs for a security operations team.", "hint": "SOC system (1 = whole system); tasks = alerts per day", "users": 1, "tasks": 8000, "inTok": 20000, "outTok": 1200, "cache": 50, "kimi": "k3", "rival": "opus55"},
+  {"group": "Developer & AI products", "id": "bi", "label": "Data analytics & BI copilot", "desc": "Business users asking questions of data in plain language.", "hint": "business users", "users": 500, "tasks": 10, "inTok": 12000, "outTok": 1000, "cache": 60, "kimi": "k27", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "knowledge", "label": "Internal knowledge assistant", "desc": "Employees asking questions over company documents.", "hint": "employees", "users": 2000, "tasks": 6, "inTok": 8000, "outTok": 600, "cache": 60, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "workflow", "label": "Enterprise workflow automation", "desc": "Agents running multi-step back-office processes end to end.", "hint": "automated workflows", "users": 50, "tasks": 200, "inTok": 15000, "outTok": 1500, "cache": 60, "kimi": "k27", "rival": "opus55"},
+  {"group": "Enterprise functions", "id": "docs", "label": "Document extraction & processing", "desc": "Reading invoices, forms and contracts into structured data.", "hint": "pipeline (1 = whole system); tasks = documents per day", "users": 1, "tasks": 20000, "inTok": 8000, "outTok": 800, "cache": 30, "kimi": "k26", "rival": "terra"},
+  {"group": "Enterprise functions", "id": "research", "label": "Research & intelligence agent", "desc": "Agents searching, reading and summarizing many sources per task.", "hint": "researchers", "users": 20, "tasks": 15, "inTok": 300000, "outTok": 5000, "cache": 50, "kimi": "k3", "rival": "astra"},
+  {"group": "Enterprise functions", "id": "support", "label": "Multilingual customer service", "desc": "AI agent answering customer chats in several languages.", "hint": "support system (1 = whole system); tasks = conversations per day", "users": 1, "tasks": 5000, "inTok": 4000, "outTok": 400, "cache": 50, "kimi": "k26", "rival": "terra"},
+  {"group": "Enterprise functions", "id": "voice", "label": "Voice agent & call-centre intelligence", "desc": "Handling calls and summarizing call transcripts.", "hint": "call centre (1 = whole system); tasks = calls per day", "users": 1, "tasks": 10000, "inTok": 6000, "outTok": 800, "cache": 40, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "sales", "label": "Sales prospecting & CRM copilot", "desc": "Researching accounts and drafting outreach for sales reps.", "hint": "sales reps", "users": 100, "tasks": 40, "inTok": 10000, "outTok": 1200, "cache": 40, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "marketing", "label": "Marketing content generation", "desc": "Marketers drafting posts, emails and ads.", "hint": "marketers", "users": 30, "tasks": 40, "inTok": 3000, "outTok": 1500, "cache": 30, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "ecom", "label": "E-commerce localisation & support", "desc": "Translating listings and answering shopper questions across Europe.", "hint": "pipeline (1 = whole system); tasks = listings + chats per day", "users": 1, "tasks": 20000, "inTok": 2500, "outTok": 1200, "cache": 40, "kimi": "k26", "rival": "terra"},
+  {"group": "Enterprise functions", "id": "finance", "label": "Financial reporting & analysis", "desc": "Analysts reading filings and long reports with 1M-token context.", "hint": "analysts", "users": 100, "tasks": 8, "inTok": 200000, "outTok": 4000, "cache": 40, "kimi": "k3", "rival": "astra"},
+  {"group": "Enterprise functions", "id": "invest", "label": "Investment research & due diligence", "desc": "Reviewing data rooms, filings and market reports for deals.", "hint": "investment professionals", "users": 40, "tasks": 10, "inTok": 250000, "outTok": 5000, "cache": 40, "kimi": "k3", "rival": "fable51"},
+  {"group": "Enterprise functions", "id": "legal", "label": "Legal document review & compliance", "desc": "Lawyers reviewing contracts and checking regulatory compliance.", "hint": "lawyers", "users": 50, "tasks": 10, "inTok": 150000, "outTok": 3000, "cache": 30, "kimi": "k3", "rival": "fable51"},
+  {"group": "Enterprise functions", "id": "hr", "label": "HR, recruiting & employee support", "desc": "Screening CVs and answering employee HR questions.", "hint": "HR system (1 = whole system); tasks = requests per day", "users": 1, "tasks": 3000, "inTok": 6000, "outTok": 800, "cache": 50, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Enterprise functions", "id": "edu", "label": "Training, education & tutoring", "desc": "A tutor explaining, quizzing and giving feedback to learners.", "hint": "learners", "users": 5000, "tasks": 5, "inTok": 4000, "outTok": 800, "cache": 60, "kimi": "k26", "rival": "terra"},
+  {"group": "Industry workflows", "id": "health", "label": "Healthcare administration & clinical documentation", "desc": "Drafting clinical notes and handling admin paperwork.", "hint": "clinicians", "users": 300, "tasks": 25, "inTok": 8000, "outTok": 1200, "cache": 40, "kimi": "k27", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "insurance", "label": "Insurance claims & policy operations", "desc": "Reading claims files and policy documents to support decisions.", "hint": "claims system (1 = whole system); tasks = claims per day", "users": 1, "tasks": 4000, "inTok": 25000, "outTok": 1500, "cache": 40, "kimi": "k3", "rival": "opus55"},
+  {"group": "Industry workflows", "id": "travel", "label": "Travel planning & booking assistant", "desc": "Itinerary and booking help inside a travel app.", "hint": "app (1 = whole system); tasks = conversations per day", "users": 1, "tasks": 30000, "inTok": 5000, "outTok": 800, "cache": 50, "kimi": "k26", "rival": "terra"},
+  {"group": "Industry workflows", "id": "logistics", "label": "Logistics & supply-chain operations", "desc": "Handling shipment exceptions, emails and planning questions.", "hint": "operations system (1 = whole system); tasks = cases per day", "users": 1, "tasks": 6000, "inTok": 8000, "outTok": 800, "cache": 50, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "manufacturing", "label": "Manufacturing & field-service assistant", "desc": "Technicians asking about manuals, faults and repair steps.", "hint": "technicians", "users": 400, "tasks": 15, "inTok": 20000, "outTok": 800, "cache": 70, "kimi": "k27", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "realestate", "label": "Real estate & property operations", "desc": "Leases, tenant requests and listing descriptions.", "hint": "property managers", "users": 100, "tasks": 30, "inTok": 8000, "outTok": 1000, "cache": 40, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "gov", "label": "Government & public services", "desc": "Citizen questions and case-file summaries for public agencies.", "hint": "service (1 = whole system); tasks = requests per day", "users": 1, "tasks": 10000, "inTok": 6000, "outTok": 700, "cache": 50, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "media", "label": "Media, publishing & content production", "desc": "Drafting, editing, translating and summarizing articles and video scripts.", "hint": "editors", "users": 50, "tasks": 30, "inTok": 10000, "outTok": 2500, "cache": 30, "kimi": "k26", "rival": "sonnet55"},
+  {"group": "Industry workflows", "id": "games", "label": "Game NPC dialogue & live operations", "desc": "AI characters talking to players, plus live-ops content.", "hint": "game (1 = whole game); tasks = dialogue lines per day", "users": 1, "tasks": 200000, "inTok": 1500, "outTok": 150, "cache": 70, "kimi": "k26", "rival": "sonnet55"}
+];
+const $ = id => document.getElementById(id);
+const fmtUSD = n => {
+  if (!isFinite(n)) return "$0";
+  const a = Math.abs(n);
+  if (a >= 1e6) return "$" + (n/1e6).toFixed(2) + "M";
+  if (a >= 1e4) return "$" + Math.round(n/1e3).toLocaleString("en-US") + "k";
+  if (a >= 100) return "$" + Math.round(n).toLocaleString("en-US");
+  return "$" + n.toFixed(a < 1 ? 4 : 2);
+};
+const fmtTok = n => n >= 1e9 ? (n/1e9).toFixed(2) + "B" : n >= 1e6 ? (n/1e6).toFixed(1) + "M" : Math.round(n).toLocaleString("en-US");
+
+for (const [k, m] of Object.entries(MODELS)) $("kimi").add(new Option(m.name, k));
+for (const [group, models] of Object.entries(RIVALS)) {
+  const og = document.createElement("optgroup"); og.label = group;
+  for (const [k, m] of Object.entries(models)) og.appendChild(new Option(m.name, k));
+  $("rival").appendChild(og);
+}
+{
+  const groups = {};
+  PRESETS.forEach(p => {
+    if (!groups[p.group]) { groups[p.group] = document.createElement("optgroup"); groups[p.group].label = p.group; $("preset").appendChild(groups[p.group]); }
+    groups[p.group].appendChild(new Option(p.label, p.id));
+  });
+}
+$("preset").add(new Option("Custom (your own numbers)", "custom"));
+$("preset").addEventListener("change", () => {
+  const p = PRESETS.find(x => x.id === $("preset").value);
+  if (p) applyPreset(p); else $("presetDesc").textContent = "Enter your own workload below.";
+});
+
+function applyPreset(p) {
+  ["users","tasks","inTok","outTok","cache"].forEach(k => $(k).value = p[k]);
+  $("kimi").value = p.kimi; $("rival").value = p.rival;
+  $("usersHint").textContent = p.hint;
+  $("preset").value = p.id;
+  $("presetDesc").textContent = p.desc;
+  calc();
+}
+function toCustom() {
+  if ($("preset").value !== "custom") { $("preset").value = "custom"; $("presetDesc").textContent = "Edited example. Your own numbers."; }
+}
+
+function cost(m, inT, cachedShare, outT, promptPerTask) {
+  const p = (m.long && promptPerTask > m.long.above) ? m.long : m;
+  const cached = inT * cachedShare, unc = inT - cached;
+  const parts = { cached: cached/1e6*p.cache, unc: unc/1e6*p.in, out: outT/1e6*p.out };
+  parts.total = parts.cached + parts.unc + parts.out;
+  return parts;
+}
+
+function calc() {
+  const v = k => Math.max(0, parseFloat($(k).value) || 0);
+  const users = v("users"), tasks = v("tasks"), inTok = v("inTok"), outTok = v("outTok");
+  const hit = Math.min(100, v("cache")) / 100, days = v("days") || 22;
+  const partner = $("channel").value === "partner";
+  $("shareField").hidden = !partner;
+  const share = partner ? Math.min(100, v("share")) / 100 : 1;
+
+  const monthlyTasks = users * tasks * days;
+  const inT = monthlyTasks * inTok, outT = monthlyTasks * outTok;
+  const km = MODELS[$("kimi").value], rm = RIVAL_FLAT[$("rival").value];
+  const k = cost(km, inT, hit, outT, inTok), r = cost(rm, inT, hit, outT, inTok);
+  $("kimiPrice").textContent = priceLine(km, $("kimi").value);
+  $("rivalPrice").textContent = priceLine(rm, $("rival").value);
+
+  const kimiRevMonth = k.total * share;
+  $("arr").textContent = fmtUSD(kimiRevMonth * 12);
+  $("arrSub").textContent = partner
+    ? `${fmtUSD(kimiRevMonth)} / month to Kimi, ${Math.round(share*100)}% of what the partner bills`
+    : `${fmtUSD(kimiRevMonth)} / month billed directly by Kimi`;
+  $("kimiCostLabel").textContent = `Customer pays on ${km.name} / month`;
+  $("rivalCostLabel").textContent = `On ${rm.name} / month`;
+  $("kimiCost").textContent = fmtUSD(k.total);
+  $("rivalCost").textContent = fmtUSD(r.total);
+  const save = r.total - k.total, pct = r.total > 0 ? save / r.total * 100 : 0;
+  $("savePct").textContent = pct >= 0 ? pct.toFixed(0) + "%" : Math.abs(pct).toFixed(0) + "% more";
+  $("saveYear").textContent = fmtUSD(save * 12);
+  ["saveCell","saveCell2"].forEach(id => $(id).classList.toggle("neg", save < 0));
+
+  const tot = k.total || 1;
+  $("bar").innerHTML =
+    `<span style="width:${k.out/tot*100}%;background:var(--b-out)"></span>` +
+    `<span style="width:${k.unc/tot*100}%;background:var(--b-unc)"></span>` +
+    `<span style="width:${k.cached/tot*100}%;background:var(--b-cache)"></span>`;
+
+  {
+    const cachedT = inT * hit, uncT = inT - cachedT;
+    const unit = (cost, tok) => tok > 0 ? "$" + (cost / tok * 1e6).toFixed(cost / tok * 1e6 < 1 ? 3 : 2) + "/M" : "–";
+    const row = (label, color, tok, kc, rc) => `<tr><td><i style="background:${color}"></i>${label}</td><td>${fmtTok(tok)}</td><td>${fmtUSD(kc)}<small>${unit(kc, tok)}</small></td><td>${fmtUSD(rc)}<small>${unit(rc, tok)}</small></td></tr>`;
+    $("bdKimiH").textContent = km.name;
+    $("bdRivalH").textContent = rm.name;
+    $("bdBody").innerHTML =
+      row("Uncached input", "var(--b-unc)", uncT, k.unc, r.unc) +
+      row("Cached input", "var(--b-cache)", cachedT, k.cached, r.cached) +
+      row("Output", "var(--b-out)", outT, k.out, r.out) +
+      `<tr class="total"><td>Total</td><td>${fmtTok(inT + outT)}</td><td>${fmtUSD(k.total)}</td><td>${fmtUSD(r.total)}</td></tr>`;
+  }
+  $("tTasks").textContent = Math.round(monthlyTasks).toLocaleString("en-US");
+  $("tTokens").textContent = fmtTok(inT + outT);
+  $("tPerTask").textContent = monthlyTasks ? fmtUSD(k.total / monthlyTasks) : "$0";
+  $("tPerTaskR").textContent = monthlyTasks ? fmtUSD(r.total / monthlyTasks) : "$0";
+
+  // Deal health: price advantage for the customer + size of the deal for Kimi
+  const arr = kimiRevMonth * 12, reasons = [];
+  if (pct >= 20) reasons.push(`Customer saves ${pct.toFixed(0)}% (${fmtUSD(save*12)} a year) versus ${rm.name}: a clear price story.`);
+  else if (pct >= 0) reasons.push(`Saving versus ${rm.name} is only ${pct.toFixed(0)}%: price alone won't move the customer.`);
+  else reasons.push(`${km.name} costs ${Math.abs(pct).toFixed(0)}% more than ${rm.name} at list prices.`);
+  if (arr >= 100000) reasons.push(`${fmtUSD(arr)} ARR for Kimi: big enough to justify hands-on BD effort.`);
+  else if (arr >= 25000) reasons.push(`${fmtUSD(arr)} ARR for Kimi: a solid account or a good pilot that can grow.`);
+  else reasons.push(`${fmtUSD(arr)} ARR for Kimi: small for direct BD effort.`);
+  if (partner) reasons.push(`Sold through a partner, Kimi keeps ${Math.round(share*100)}% of the bill.`);
+  if (hit >= 0.8) reasons.push(`High cache rate: output price drives the bill, so Kimi's cheaper output matters most.`);
+  let level, title, next;
+  if (pct < 0 || arr < 10000) {
+    level = "red"; title = "Weak deal";
+    next = pct < 0 ? "<b>Next step:</b> only pursue if quality, open weights or EU hosting matter more than price; otherwise don't prioritize." : "<b>Next step:</b> send to self-serve API or a partner channel instead of direct BD time.";
+  } else if (pct >= 20 && arr >= 25000) {
+    level = "green"; title = "Healthy deal";
+    next = "<b>Next step:</b> push now. Propose a paid pilot on this workload and expand to other teams once quality is proven.";
+  } else {
+    level = "yellow"; title = "Possible deal";
+    next = pct < 20 ? "<b>Next step:</b> lead with quality, coding performance or data control; ask how repetitive the workload is, since caching changes the bill." : "<b>Next step:</b> start as a small pilot or reference case and grow volume before investing heavy BD time.";
+  }
+  $("health").className = "health " + level;
+  $("hArrow").textContent = level === "green" ? "↗" : level === "yellow" ? "→" : "↘";
+  $("hTitle").textContent = title;
+  $("hReasons").innerHTML = reasons.map(x => `<li>${x}</li>`).join("");
+  $("hNext").innerHTML = next;
+}
+
+["users","tasks","inTok","outTok","cache"].forEach(k => $(k).addEventListener("input", () => { toCustom(); calc(); }));
+["kimi","rival"].forEach(k => $(k).addEventListener("change", () => { toCustom(); calc(); }));
+["days","share"].forEach(k => $(k).addEventListener("input", calc));
+$("channel").addEventListener("change", calc);
+$("days").value = 22; $("share").value = 30;
+buildPriceTable();
+applyPreset(PRESETS[0]);
+</script>
+<script>
+(function () {
+  const c = document.getElementById("sky"), ctx = c.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const P = 3; let w, h, stars = [], t = 0;
+  function size() {
+    w = Math.ceil(innerWidth / P); h = Math.ceil(innerHeight / P);
+    c.width = w; c.height = h;
+    stars = Array.from({ length: Math.round(w * h / 140) }, () => ({ x: Math.random() * w | 0, y: Math.random() * h | 0, b: Math.random(), s: Math.random() * 0.04 + 0.01 }));
+    draw();
+  }
+  const bayer = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  function draw() {
+    const img = ctx.createImageData(w, h), d = img.data;
+    const mx = w * 0.18, my = h * 1.02, r = Math.min(w, h) * 0.55;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let v = 0;
+      const gx = (x - w * 0.72) / (w * 0.22), gy = (y - h * 0.32) / (h * 0.09);
+      v += Math.exp(-(gx * gx + gy * gy)) * 0.28;
+      const dx = x - mx, dy = y - my, dd = Math.sqrt(dx * dx + dy * dy);
+      if (dd < r) { const shade = 0.12 + 0.28 * Math.max(0, (dx + dy * 0.4) / r + 0.6) + 0.08 * Math.sin(x * 0.21) * Math.cos(y * 0.17); v = Math.max(v, shade * 0.75); }
+      const th = (bayer[y & 3][x & 3] + 0.5) / 16, on = v > th ? 1 : 0;
+      const i = (y * w + x) * 4, g = on ? 70 : 0;
+      d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = 255;
+    }
+    for (const st of stars) { const tw = reduce ? st.b : (Math.sin(t * st.s * 6 + st.b * 10) + 1) / 2; const g = 90 + tw * 165; const i = (st.y * w + st.x) * 4; d[i] = d[i + 1] = d[i + 2] = g; }
+    ctx.putImageData(img, 0, 0);
+  }
+  addEventListener("resize", size);
+  size();
+  if (!reduce) setInterval(() => { t++; draw(); }, 500);
+})();
+</script>
+<script>
+(function () {
+  const cv = document.getElementById("game"), g = cv.getContext("2d");
+  const W = cv.width, H = cv.height, PX = 4;
+  const ship = { x: W / 2, w: 26 };
+  let shots = [], drops = [], foes = [], dir = 1, score = 0, best = 0, state = "idle", keys = {}, cool = 0, wave = 1, tick = 0;
+  // Original sprites: a small moon-lander ship and blocky "token" coins with a pixel T.
+  const TOKEN = ["0111110","1111111","1100011","1110111","1110111","1111111","0111110"];
+  const SHIP = ["0001000","0011100","0111110","1111111","1101011"];
+  function sprite(rows, x, y, color, s) {
+    g.fillStyle = color;
+    rows.forEach((r, j) => [...r].forEach((c, i) => { if (c === "1") g.fillRect(Math.round(x + i * s), Math.round(y + j * s), s, s); }));
+  }
+  function spawn() {
+    foes = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) foes.push({ x: 40 + c * 48, y: 20 + r * 28, alive: true, row: r });
+    dir = 1;
+  }
+  function reset() { score = 0; wave = 1; shots = []; drops = []; ship.x = W / 2; spawn(); state = "play"; }
+  function fire() { if (state !== "play") { reset(); return; } if (cool <= 0) { shots.push({ x: ship.x, y: H - 30 }); cool = 14; } }
+  function step() {
+    tick++;
+    if (state === "play") {
+      if (keys.left) ship.x -= 4; if (keys.right) ship.x += 4;
+      ship.x = Math.max(ship.w / 2, Math.min(W - ship.w / 2, ship.x));
+      if (keys.fire) fire();
+      cool--;
+      shots.forEach(s => s.y -= 6); shots = shots.filter(s => s.y > -10);
+      const live = foes.filter(f => f.alive);
+      const speed = 0.35 + wave * 0.15 + (24 - live.length) * 0.04;
+      let edge = false;
+      live.forEach(f => { f.x += dir * speed; if (f.x < 8 || f.x > W - 36) edge = true; });
+      if (edge) { dir *= -1; live.forEach(f => f.y += 10); }
+      if (tick % Math.max(20, 60 - wave * 6) === 0 && live.length) { const f = live[Math.random() * live.length | 0]; drops.push({ x: f.x + 14, y: f.y + 28 }); }
+      drops.forEach(d => d.y += 2.6 + wave * 0.3); drops = drops.filter(d => d.y < H);
+      shots.forEach(s => live.forEach(f => { if (f.alive && s.x > f.x && s.x < f.x + 28 && s.y > f.y && s.y < f.y + 28) { f.alive = false; s.y = -99; score += 10 * (3 - f.row); } }));
+      const hit = drops.some(d => Math.abs(d.x - ship.x) < ship.w / 2 && d.y > H - 26 && d.y < H - 6);
+      if (hit || live.some(f => f.y > H - 50)) { state = "over"; best = Math.max(best, score); }
+      if (!foes.some(f => f.alive)) { wave++; spawn(); }
+    }
+    draw();
+    document.getElementById("gScore").textContent = `Score ${score} · Best ${best}`;
+  }
+  function draw() {
+    g.fillStyle = "#020205"; g.fillRect(0, 0, W, H);
+    g.fillStyle = "#2a2a2a"; for (let i = 0; i < 40; i++) g.fillRect((i * 97) % W, (i * 53 + tick * 0.2 * (i % 3 + 1)) % H, 2, 2);
+    foes.forEach(f => f.alive && sprite(TOKEN, f.x, f.y, ["#93c5fd", "#3b82f6", "#e5e5e5"][f.row], PX));
+    g.fillStyle = "#ffffff"; shots.forEach(s => g.fillRect(s.x - 1, s.y, 3, 8));
+    g.fillStyle = "#f87171"; drops.forEach(d => g.fillRect(d.x - 2, d.y, 4, 6));
+    sprite(SHIP, ship.x - 14, H - 26, "#4ade80", 4);
+    if (state !== "play") {
+      g.fillStyle = "rgba(0,0,0,0.6)"; g.fillRect(0, 0, W, H);
+      g.fillStyle = "#ffffff"; g.textAlign = "center"; g.font = "16px Silkscreen, monospace";
+      g.fillText(state === "over" ? `GAME OVER · ${score}` : "TOKEN DEFENDER", W / 2, H / 2 - 8);
+      g.font = "11px Silkscreen, monospace"; g.fillStyle = "#8a8a8a";
+      g.fillText("Click or press Fire to start", W / 2, H / 2 + 16);
+    }
+  }
+  const map = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", Space: "fire" };
+  cv.addEventListener("keydown", e => { if (map[e.code]) { keys[map[e.code]] = true; e.preventDefault(); } });
+  cv.addEventListener("keyup", e => { if (map[e.code]) keys[map[e.code]] = false; });
+  cv.addEventListener("click", () => { cv.focus(); fire(); });
+  cv.addEventListener("blur", () => { keys = {}; });
+  const hold = (id, k) => { const b = document.getElementById(id);
+    b.addEventListener("pointerdown", e => { keys[k] = true; if (k === "fire") fire(); e.preventDefault(); });
+    ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, () => keys[k] = false)); };
+  hold("gLeft", "left"); hold("gRight", "right"); hold("gFire", "fire");
+  spawn(); draw();
+  setInterval(step, 1000 / 50);
+})();
+</script>

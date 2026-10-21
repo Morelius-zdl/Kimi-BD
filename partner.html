@@ -1,0 +1,705 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kimi Partner Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a two-panel console floating over a dithered night sky. Inputs left, deal readout right; stacks on phones.
+   Deliberately single-theme (dark, monochrome, pixel type), so no light-mode tokens. */
+:root {
+  color-scheme: dark;
+  --bg: #000000;
+  --panel: rgba(8, 8, 10, 0.86);
+  --ink: #f2f2f2;
+  --muted: #8a8a8a;
+  --dim: #3c3c3c;
+  --line: #4a4a4a;
+  --accent: #ffffff;
+  --muted-fill: #7a7a7a;
+  --good: #bdbdbd;
+  --green: #4ade80;
+  --b-out: #3b82f6;
+  --b-unc: #93c5fd;
+  --b-cache: #1e3a8a;
+  --yellow: #facc15;
+  --red: #f87171;
+  --pixel: "Silkscreen", "Courier New", monospace;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --body: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --display: "Silkscreen", "Courier New", monospace;
+  --cut: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 56px; position: relative; min-height: 100%;
+}
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; image-rendering: pixelated; }
+.wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+header { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.tag { font-family: var(--pixel); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+header h1 { font-family: var(--mono); font-weight: 600; font-size: clamp(28px, 5vw, 44px); margin: 0; letter-spacing: -0.02em; line-height: 1.1; text-wrap: balance; }
+header h1 .br { color: var(--muted); }
+header p { margin: 0; color: var(--muted); max-width: 64ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); clip-path: var(--cut); padding: 22px; display: flex; flex-direction: column; gap: 16px; min-width: 0; backdrop-filter: blur(2px); }
+.label { font-family: var(--pixel); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 400; }
+.label::before { content: "[ "; color: var(--dim); }
+.label::after { content: " ]"; color: var(--dim); }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label:not(.label) { font-size: 13px; color: var(--ink); }
+.field small { color: var(--muted); font-size: 11.5px; }
+input, select { font: inherit; font-family: var(--mono); font-size: 14px; padding: 9px 11px; border-radius: 0; border: 1px solid var(--line); background: #050505; color: var(--ink); width: 100%; }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 30px; }
+select optgroup { font-family: var(--mono); color: var(--muted); background: #050505; }
+select option { color: var(--ink); background: #050505; }
+input:hover, select:hover { border-color: var(--muted); }
+input:focus-visible, select:focus-visible, .copy:focus-visible, details.sources summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
+.divider { border: 0; border-top: 1px dashed var(--dim); margin: 2px 0; }
+.price { font-family: var(--mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.headline { display: flex; flex-direction: column; gap: 6px; }
+.headline .big { font-family: var(--mono); font-weight: 600; font-size: clamp(40px, 7vw, 60px); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
+.headline .sub { color: var(--muted); font-size: 13px; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.cell { border: 1px solid var(--line); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0; clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 0 100%); }
+.cell .v { font-family: var(--mono); font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cell .k { font-size: 11.5px; color: var(--muted); }
+.saving { background: var(--accent); border-color: var(--accent); }
+.saving .v, .saving .k { color: #000; }
+.saving.neg { background: transparent; border: 1px dashed var(--muted); }
+.saving.neg .v { color: var(--ink); }
+.saving.neg .k { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td { padding: 8px 0; border-bottom: 1px dashed var(--dim); }
+td:last-child { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: 0; }
+.bar { height: 12px; background: #111; display: flex; border: 1px solid var(--line); }
+.bar span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink); }
+.legend i { display: inline-block; width: 12px; height: 12px; margin-right: 7px; vertical-align: -2px; border: 1px solid rgba(255,255,255,0.35); }
+.bar { height: 16px; }
+.copy { align-self: flex-start; font-family: var(--pixel); font-size: 12px; padding: 8px 14px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.copy::before { content: "<< "; }
+.copy::after { content: " >>"; }
+.copy:hover { background: var(--accent); color: #000; }
+.bd-wrap { overflow-x: auto; }
+.bd { min-width: 440px; }
+.bd th { text-align: right; font-family: var(--pixel); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 400; padding: 6px 0 8px; border-bottom: 1px solid var(--line); }
+.bd th:first-child, .bd td:first-child { text-align: left; }
+.bd td { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; vertical-align: top; }
+.bd td:first-child { font-family: var(--body); }
+.bd td small { display: block; color: var(--muted); font-size: 11px; }
+.bd td i { display: inline-block; width: 10px; height: 10px; margin-right: 7px; vertical-align: -1px; }
+.bd tr.total td { border-top: 1px solid var(--line); border-bottom: 0; font-weight: 600; }
+.game { border: 1px solid var(--line); background: #020205; display: flex; flex-direction: column; }
+.game canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; cursor: pointer; aspect-ratio: 12 / 5; max-width: 100%; }
+.game canvas:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.game-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-top: 1px dashed var(--dim); font-family: var(--pixel); font-size: 11px; color: var(--muted); }
+.game-ctrls { display: flex; gap: 6px; }
+.game-ctrls button { font-family: var(--pixel); font-size: 11px; background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 5px 10px; cursor: pointer; touch-action: manipulation; }
+.game-ctrls button:active, .game-ctrls button:hover { border-color: var(--accent); }
+.health { border: 1px solid var(--line); border-left: 4px solid var(--hc, var(--line)); padding: 14px 16px; display: flex; gap: 14px; align-items: flex-start; }
+.health.green { --hc: var(--green); }
+.health.yellow { --hc: var(--yellow); }
+.health.red { --hc: var(--red); }
+.health .arrow { font-family: var(--mono); font-weight: 600; font-size: 30px; line-height: 1; color: var(--hc); min-width: 30px; text-align: center; }
+.health .hbody { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.health .htitle { font-family: var(--mono); font-weight: 600; font-size: 15px; color: var(--hc); }
+.health ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.health .next { font-size: 13px; color: var(--muted); }
+.health .next b { color: var(--ink); font-weight: 600; }
+.note { font-size: 11.5px; color: var(--muted); margin: 0; }
+details.sources { background: var(--panel); border: 1px solid var(--line); padding: 2px 22px; clip-path: var(--cut); }
+details.sources summary { cursor: pointer; padding: 14px 0; font-family: var(--pixel); font-size: 13px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; list-style: none; }
+details.sources summary::-webkit-details-marker { display: none; }
+details.sources summary::before { content: ">"; margin-right: 8px; }
+details.sources[open] summary::before { content: "v"; }
+details.sources summary span { color: var(--muted); font-family: var(--mono); font-size: 12px; margin-left: auto; }
+.ptable-wrap { overflow-x: auto; padding-bottom: 18px; }
+.ptable { min-width: 520px; }
+.ptable th { text-align: left; font-family: var(--pixel); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); padding: 8px 0; border-bottom: 1px solid var(--line); font-weight: 400; }
+.ptable th:not(:first-child), .ptable td:not(:first-child) { text-align: right; font-family: var(--mono); }
+.ptable td:first-child { text-align: left; }
+.ptable tr.grp td { padding-top: 18px; font-family: var(--pixel); font-size: 12px; border-bottom: 1px solid var(--line); }
+.ptable tr.grp a { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-left: 10px; }
+.ptable tr.grp a:hover { color: var(--accent); }
+.ptable .est { color: var(--muted); }
+footer { font-size: 12px; color: var(--ink); font-family: var(--mono); }
+@media (prefers-reduced-motion: reduce) { #sky { opacity: 0.7; } }
+</style>
+<style>
+.step { display: flex; flex-direction: column; gap: 12px; }
+.step + .step { border-top: 1px dashed var(--dim); padding-top: 16px; }
+.step-head { display: flex; align-items: baseline; gap: 10px; }
+.step-num { font-family: var(--pixel); font-size: 11px; color: #000; background: var(--accent); padding: 2px 6px; }
+.step-title { font-family: var(--pixel); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+.seg { display: flex; border: 1px solid var(--line); }
+.seg button { flex: 1; font-family: var(--mono); font-size: 12.5px; padding: 9px 6px; background: transparent; color: var(--muted); border: 0; border-right: 1px solid var(--line); cursor: pointer; line-height: 1.25; }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #000; font-weight: 600; }
+.seg button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.explain { font-size: 12.5px; color: var(--muted); margin: 0; }
+.explain b { color: var(--ink); font-weight: 600; }
+.chart-wrap { overflow-x: auto; }
+.chart text { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.flow { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.flow li::marker { color: var(--muted); font-family: var(--mono); }
+.flow b { font-family: var(--mono); font-weight: 600; }
+.flow .k { color: #60a5fa; } .flow .p { color: #93c5fd; } .flow .h { color: #8fa9de; }
+details.adv summary { cursor: pointer; font-size: 12.5px; color: var(--muted); list-style: none; }
+details.adv summary::-webkit-details-marker { display: none; }
+details.adv summary::before { content: "> "; }
+details.adv[open] summary::before { content: "v "; }
+details.adv[open] summary { margin-bottom: 12px; }
+.results-block { display: flex; flex-direction: column; gap: 10px; }
+.fields .field > label { min-height: 2.7em; display: flex; align-items: flex-end; line-height: 1.3; }
+.rw-body .fields .field > label { min-height: 2.7em; }
+.more-box { border: 1px dashed var(--dim); }
+.more-box summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; padding: 10px 12px; font-family: var(--pixel); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.more-box summary::-webkit-details-marker { display: none; }
+.more-box summary span:first-child::before { content: "> "; }
+.more-box[open] summary span:first-child::before { content: "v "; }
+.more-box summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.more-box .rewards.more { max-height: none; overflow: visible; border: 0; padding: 0 10px 10px; }
+.more-head { display: flex; justify-content: space-between; font-family: var(--pixel); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.rewards.more { max-height: 240px; overflow-y: auto; padding: 8px 4px 8px 0; border-top: 1px dashed var(--dim); border-bottom: 1px dashed var(--dim); scrollbar-color: #4a4a4a transparent; }
+.rewards.more:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.duel { border: 1px solid var(--line); background: #020205; display: flex; flex-direction: column; }
+.arena { display: grid; grid-template-columns: 1fr; padding: 12px; gap: 8px; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 6px); }
+.fighter { display: flex; align-items: center; gap: 10px; }
+.fighter.foe { justify-content: flex-end; }
+.fighter canvas { width: 72px; height: 72px; image-rendering: pixelated; flex: none; }
+.fighter.hit canvas { animation: shake 0.3s; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .fighter.hit canvas { animation: none; opacity: 0.6; } }
+.fbar { display: grid; grid-template-columns: auto 90px 28px; gap: 8px; align-items: center; border: 1px solid var(--line); padding: 6px 8px; background: rgba(0,0,0,0.6); }
+.fname { font-family: var(--pixel); font-size: 11px; }
+.hp { height: 8px; border: 1px solid var(--line); background: #111; display: block; }
+.hp span { display: block; height: 100%; width: 100%; background: #3b82f6; transition: width 0.3s; }
+.hp span.low { background: var(--red); }
+.hpn { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.duel-log { border-top: 1px dashed var(--dim); padding: 10px 12px; font-size: 12.5px; min-height: 3.2em; }
+.moves { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.moves button { font-family: var(--pixel); font-size: 11px; padding: 10px 6px; background: transparent; color: var(--ink); border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; }
+.moves button:nth-child(2n) { border-right: 0; }
+.moves button:nth-last-child(-n+2) { border-bottom: 0; }
+.moves button.wide { grid-column: 1 / 3; border-right: 0; }
+.moves button:hover:not(:disabled), .moves button:focus-visible { background: var(--accent); color: #000; outline: none; }
+.moves button:disabled { color: var(--dim); cursor: default; }
+.mix { display: flex; flex-direction: column; gap: 6px; }
+.mix-row { display: grid; grid-template-columns: 86px minmax(0, 1fr) 72px; gap: 10px; align-items: center; }
+.mix-name { font-size: 12.5px; }
+.mix-bar { height: 8px; background: #111; border: 1px solid var(--line); display: block; }
+.mix-bar span { display: block; height: 100%; background: #3b82f6; width: 0; }
+.mix-row input { padding: 6px 8px; text-align: right; }
+#mixNote.warn { color: var(--yellow); }
+.rewards { display: flex; flex-direction: column; gap: 8px; }
+.rw { border: 1px solid var(--line); background: rgba(255,255,255,0.02); }
+.rw.on { border-color: var(--accent); }
+.rw-head { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; cursor: pointer; }
+.rw-head input { width: 16px; height: 16px; margin: 2px 0 0; accent-color: #3b82f6; flex: none; padding: 0; }
+.rw-title { font-size: 13.5px; font-weight: 600; }
+.rw-desc { font-size: 12px; color: var(--muted); }
+.rw-body { padding: 0 12px 12px 38px; }
+.rw-body .fields { gap: 10px; }
+.rw-gets { font-size: 11.5px; color: #93c5fd; margin-top: 8px; }
+.cell.rewardcost .v { color: #93c5fd; }
+.rw-head input[type="checkbox"] { width: 16px; height: 16px; min-width: 16px; margin: 3px 0 0; padding: 0; border: 0; }
+.rw-head > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rw-head br { display: none; }
+.rw-body { padding: 0 12px 12px 38px; }
+.more-box { border: 1px dashed var(--dim); }
+.more-box summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; padding: 10px 12px; font-family: var(--pixel); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.more-box summary::-webkit-details-marker { display: none; }
+.more-box summary span:first-child::before { content: "> "; }
+.more-box[open] summary span:first-child::before { content: "v "; }
+.more-box summary:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.more-box .rewards.more { max-height: none; overflow: visible; border: 0; padding: 0 10px 10px; }
+.more-head { display: flex; justify-content: space-between; font-family: var(--pixel); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.rewards.more { max-height: 230px; overflow-y: auto; padding-right: 4px; border-top: 1px dashed var(--dim); border-bottom: 1px dashed var(--dim); padding-block: 8px; scrollbar-color: #4a4a4a transparent; }
+.rewards.more:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.grid > .panel { align-self: stretch; }
+</style>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <span class="tag">&lt;&lt; Moonshot AI &gt;&gt;</span>
+    <h1><span class="br">[</span> Kimi Partner Simulator <span class="br">]</span></h1>
+    <p>Customers pay the partner, the partner gives Kimi its share, and the partner keeps the rest after its costs. Design the terms and check that both sides win.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Deal terms">
+
+      <div class="step">
+        <div class="step-head"><span class="step-num">1</span><span class="step-title">Partner</span></div>
+        <div class="field"><label for="preset">Partner type</label><select id="preset"></select><small id="presetDesc"></small></div>
+        <div class="field">
+          <label>Model mix (% of tokens)</label>
+          <div class="mix">
+            <div class="mix-row"><span class="mix-name">Kimi K3</span><span class="mix-bar"><span id="barK3"></span></span><input id="mixK3" type="number" min="0" max="100" step="5" aria-label="Kimi K3 share of tokens (%)"></div>
+            <div class="mix-row"><span class="mix-name">K2.7 Code</span><span class="mix-bar"><span id="barK27"></span></span><input id="mixK27" type="number" min="0" max="100" step="5" aria-label="Kimi K2.7 Code share of tokens (%)"></div>
+            <div class="mix-row"><span class="mix-name">K2.6</span><span class="mix-bar"><span id="barK26"></span></span><input id="mixK26" type="number" min="0" max="100" step="5" aria-label="Kimi K2.6 share of tokens (%)"></div>
+          </div>
+          <small id="mixNote"></small>
+          <span class="price" id="modelPrice"></span>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-head"><span class="step-num">2</span><span class="step-title">How Kimi gets paid</span></div>
+        <div class="seg" role="group" aria-label="Payment model">
+          <button type="button" data-mode="share">Revenue share</button>
+          <button type="button" data-mode="wholesale">Wholesale</button>
+        </div>
+        <p class="explain" id="modeExplain"></p>
+        <div class="fields">
+          <div class="field"><label for="take" id="takeLabel"></label><input id="take" type="number" min="0" max="100" step="1"></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-head"><span class="step-num">3</span><span class="step-title">Rewards for the partner</span></div>
+        <p class="explain">Tick one or more. Each one gives the partner a discount and gets Kimi something back.</p>
+        <div class="rewards" id="rewards"></div>
+        <details class="more-box" id="moreBox">
+          <summary><span>More rewards</span><span id="moreCount"></span></summary>
+          <div class="rewards more" id="rewardsMore"></div>
+        </details>
+      </div>
+
+      <div class="step">
+        <div class="step-head"><span class="step-num">4</span><span class="step-title">Partner's business</span></div>
+        <div class="fields">
+          <div class="field"><label for="markup">Partner's price vs Kimi's price (%)</label><input id="markup" type="number" min="-50" max="200" step="5"><small>+10 = partner charges 10% more</small></div>
+          <div class="field" id="hostField"><label for="host">Partner's server cost ($ per million tokens)</label><input id="host" type="number" min="0" step="0.1"><small>rough estimate</small></div>
+          <div class="field"><label for="vol">Tokens customers use today (billions / month)</label><input id="vol" type="number" min="0" step="1"></div>
+          <div class="field"><label for="growth">Growth per month (%)</label><input id="growth" type="number" min="-50" max="100" step="1"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="Deal results" aria-live="polite">
+      <div class="seg" role="group" aria-label="Time horizon">
+        <button type="button" data-m="12">12 months</button>
+        <button type="button" data-m="24">24 months</button>
+        <button type="button" data-m="36">36 months</button>
+      </div>
+
+      <div class="headline">
+        <div class="label">Kimi's total revenue</div>
+        <div class="big" id="kimiTotal">$0</div>
+        <div class="sub" id="kimiSub"></div>
+      </div>
+
+      <div class="compare">
+        <div class="cell"><span class="k">Customers spend</span><span class="v" id="custTotal">$0</span></div>
+        <div class="cell"><span class="k">Partner profit</span><span class="v" id="partnerProfit">$0</span></div>
+        <div class="cell"><span class="k">Partner margin</span><span class="v" id="partnerMargin">0%</span></div>
+        <div class="cell"><span class="k">Kimi gets per $100 spent</span><span class="v" id="kimiPer100">$0</span></div>
+        <div class="cell rewardcost"><span class="k">Rewards cost Kimi</span><span class="v" id="rewardCost">$0</span></div>
+        <div class="cell"><span class="k">Volume by the last month</span><span class="v" id="lastVol">0B</span></div>
+      </div>
+
+      <div class="results-block">
+        <div class="label">Month 1, step by step</div>
+        <ol class="flow" id="flow"></ol>
+      </div>
+
+      <div class="results-block">
+        <div class="label">Monthly split</div>
+        <div class="chart-wrap"><svg class="chart" id="chart" viewBox="0 0 520 210" role="img" aria-label="Monthly split between Kimi, partner profit and server cost"></svg></div>
+        <div class="legend">
+          <span><i style="background:var(--b-out)"></i>Kimi</span>
+          <span><i style="background:var(--b-unc)"></i>Partner profit</span>
+          <span><i style="background:var(--b-cache)"></i>Server cost</span>
+          <span><i style="background:#64748b"></i>Credits + marketing (paid by Kimi)</span>
+        </div>
+      </div>
+
+      <div class="results-block">
+        <div class="label">Win-win check</div>
+        <div class="health" id="health">
+          <div class="arrow" id="hArrow" aria-hidden="true"></div>
+          <div class="hbody">
+            <div class="htitle" id="hTitle"></div>
+            <ul id="hReasons"></ul>
+            <div class="next" id="hNext"></div>
+          </div>
+        </div>
+      </div>
+      <div class="results-block">
+        <div class="label">Model Duel · Kimi vs ChatGPT</div>
+        <div class="duel" id="duel">
+          <div class="arena">
+            <div class="fighter foe">
+              <div class="fbar"><span class="fname">ChatGPT</span><span class="hp"><span id="foeHp"></span></span><span class="hpn" id="foeHpN">100</span></div>
+              <canvas id="foeSprite" width="48" height="48" aria-hidden="true"></canvas>
+            </div>
+            <div class="fighter me">
+              <canvas id="meSprite" width="48" height="48" aria-hidden="true"></canvas>
+              <div class="fbar"><span class="fname">Kimi</span><span class="hp"><span id="meHp"></span></span><span class="hpn" id="meHpN">100</span></div>
+            </div>
+          </div>
+          <div class="duel-log" id="duelLog" aria-live="polite"></div>
+          <div class="moves" id="moves"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <details class="sources">
+    <summary>Assumptions <span>Kimi list prices · Oct 2026</span></summary>
+    <div class="ptable-wrap">
+      <p class="note">Prices start from Kimi's public list (K3 $3 input / $0.30 repeated input / $15 answers per million tokens; K2.7 Code $0.95 / $0.19 / $4; K2.6 $0.95 / $0.16 / $4). Moonshot reportedly asks cloud partners for up to 30% of revenue. Partner types, server costs and growth rates are illustrative, not real deal terms. <a href="https://platform.kimi.ai/docs/pricing/chat" target="_blank" rel="noopener" style="color:var(--ink)">Kimi pricing ↗</a></p>
+    </div>
+  </details>
+  <footer>Unofficial tool by Marco Morello for interview preparation. Not affiliated with or endorsed by Moonshot AI.</footer>
+</div>
+
+<script>
+const MODELS = {
+  k3:  { name: "Kimi K3",        in: 3,    cache: 0.30, out: 15 },
+  k27: { name: "Kimi K2.7 Code", in: 0.95, cache: 0.19, out: 4 },
+  k26: { name: "Kimi K2.6",      in: 0.95, cache: 0.16, out: 4 },
+};
+// Each reward: inputs shown when ticked. Labels can differ for revenue share (s) and wholesale (w).
+const REWARDS = [
+  { id: "launch", main: true, title: "Launch discount", desc: { s: "A discount on Kimi's share for the first months, while the partner gets started.", w: "An extra discount on Kimi's price for the first months, while the partner gets started." },
+    gets: "Kimi gets: a partner who actually starts selling.",
+    inputs: [ { id: "launchMonths", label: "How many months", step: 1 }, { id: "launchTake", label: "Launch discount (%)", step: 5 } ] },
+  { id: "growth", main: true, title: "Growth discount", desc: { s: "A discount on Kimi's share only for volume above today's. Uses the growth per month in step 4.", w: "An extra discount only for volume above today's. Uses the growth per month in step 4." },
+    gets: "Kimi gets: more volume, with no discount on today's business.",
+    inputs: [ { id: "growthTake", label: "Discount on new growth (%)", step: 5 } ] },
+  { id: "commit", main: true, title: "Commitment discount", desc: { s: "The partner signs for a number of years and gets a discount on Kimi's share for the whole contract.", w: "The partner signs for a number of years and gets an extra discount for the whole contract." },
+    gets: "Kimi gets: a locked-in partner for years, plus a monthly floor if set.",
+    inputs: [ { id: "commitYears", label: "Contract length (years)", step: 1 }, { id: "commitPts", label: "Commitment discount (%)", step: 5 }, { id: "commitMin", label: "Guaranteed minimum to Kimi ($ / month, optional)", step: 1000 } ] },
+  { id: "migration", title: "Migration credits", desc: { s: "Kimi pays part of the bill for customers who move their traffic from another model (GPT, Claude, Gemini…).", w: "Kimi pays part of the bill for customers who move their traffic from another model (GPT, Claude, Gemini…)." },
+    gets: "Kimi gets: customers won from competitors, who stay after the credits end.",
+    inputs: [ { id: "migVol", label: "Volume moved from other models (B tokens / month)", step: 1 }, { id: "migPct", label: "Credits cover (% of that bill)", step: 10 }, { id: "migMonths", label: "For how many months", step: 1 } ] },
+  { id: "newcust", title: "New-customer discount", desc: { s: "A discount on Kimi's share for customers who never used Kimi before.", w: "An extra discount for customers who never used Kimi before." },
+    gets: "Kimi gets: new customers, not existing ones moved to a partner.",
+    inputs: [ { id: "ncShare", label: "Share of volume from new customers (%)", step: 5 }, { id: "ncPts", label: "New-customer discount (%)", step: 5 } ] },
+  { id: "rebate", title: "Year-end rebate", desc: { s: "Money back at the end of each year, only if the partner hits its growth target.", w: "Money back at the end of each year, only if the partner hits its growth target." },
+    gets: "Kimi gets: pays only for results.",
+    inputs: [ { id: "rebateTarget", label: "Target: volume growth over the year (%)", step: 10 }, { id: "rebatePct", label: "Rebate (% of Kimi's yearly revenue)", step: 1 } ] },
+  { id: "mdf", title: "Marketing fund", desc: { s: "Kimi sponsors the partner's marketing: a % of what the partner pays Kimi comes back as a marketing budget.", w: "Kimi sponsors the partner's marketing: a % of what the partner pays Kimi comes back as a marketing budget." },
+    gets: "Kimi gets: campaigns, events and listings promoting Kimi.",
+    inputs: [ { id: "mdfPct", label: "Kimi sponsors (% of what the partner pays)", step: 1 } ] },
+  { id: "credits", title: "Trial credits", desc: { s: "Kimi pays for free trial tokens for the partner's new customers.", w: "Kimi pays for free trial tokens for the partner's new customers." },
+    gets: "Kimi gets: more customers try Kimi, which adds growth.",
+    inputs: [ { id: "credBudget", label: "Credits funded by Kimi ($ / month)", step: 1000 }, { id: "credMonths", label: "For how many months", step: 1 }, { id: "credBoost", label: "Extra growth it brings (points / month)", step: 0.5 } ] },
+];
+const RDEF = { migVol: 5, migPct: 50, migMonths: 3, launchMonths: 6, launchTake: 50, growthTake: 33, commitYears: 2, commitMin: 20000, commitPts: 10, ncShare: 40, ncPts: 15, rebateTarget: 100, rebatePct: 5, mdfPct: 3, credBudget: 10000, credMonths: 3, credBoost: 2 };
+const PRESETS = [
+  { id: "hyper", label: "Hyperscaler marketplace", desc: "A global cloud lists Kimi in its model catalog and shares revenue.", mode: "share", mixK3: 50, mixK27: 30, mixK26: 20, take: 30, markup: 0, host: 0.9, vol: 60, growth: 8, outShare: 20, cache: 50,
+    on: ["growth", "commit"], r: { growthTake: 33, commitYears: 2, commitMin: 50000, commitPts: 7, mdfPct: 3 } },
+  { id: "euc", label: "EU sovereign cloud", desc: "A European cloud hosts Kimi in the EU and charges a small premium for it.", mode: "share", mixK3: 40, mixK27: 30, mixK26: 30, take: 30, markup: 10, host: 0.9, vol: 10, growth: 10, outShare: 20, cache: 50,
+    on: ["launch", "commit"], r: { launchMonths: 6, launchTake: 50, commitYears: 2, commitMin: 20000, commitPts: 0, credBudget: 10000, credMonths: 3, credBoost: 2 } },
+  { id: "telco", label: "Telecom AI bundle", desc: "A telecom bundles Kimi into AI packages for its business customers.", mode: "share", mixK3: 10, mixK27: 40, mixK26: 50, take: 25, markup: 25, host: 0.6, vol: 5, growth: 12, outShare: 20, cache: 40,
+    on: ["launch"], r: { launchMonths: 6, launchTake: 40, ncShare: 60, ncPts: 20, mdfPct: 5 } },
+  { id: "infer", label: "Certified inference provider", desc: "A provider serves Kimi to developers, competing on price and speed.", mode: "share", mixK3: 60, mixK27: 30, mixK26: 10, take: 25, markup: -10, host: 0.9, vol: 30, growth: 6, outShare: 20, cache: 60,
+    on: ["growth"], r: { growthTake: 40, rebateTarget: 80, rebatePct: 5 } },
+  { id: "si", label: "System integrator", desc: "An integrator resells Kimi inside client projects and earns on its services.", mode: "wholesale", mixK3: 50, mixK27: 40, mixK26: 10, take: 20, markup: 0, host: 0, vol: 3, growth: 15, outShare: 20, cache: 50,
+    on: ["growth", "commit"], r: { growthTake: 12, ncShare: 70, ncPts: 6, commitYears: 1, commitMin: 10000, commitPts: 0 } },
+  { id: "embed", label: "Embedded product (SaaS)", desc: "A software company builds Kimi into its product and buys API at a discount.", mode: "wholesale", mixK3: 30, mixK27: 50, mixK26: 20, take: 15, markup: 0, host: 0, vol: 20, growth: 8, outShare: 15, cache: 70,
+    on: ["commit"], r: { commitYears: 3, commitMin: 20000, commitPts: 6 } },
+  { id: "vc", label: "VC portfolio program", desc: "A VC offers Kimi to its startups; volume starts small and grows fast.", mode: "wholesale", mixK3: 20, mixK27: 50, mixK26: 30, take: 20, markup: 0, host: 0, vol: 1, growth: 20, outShare: 20, cache: 50,
+    on: ["launch"], r: { launchMonths: 6, launchTake: 25, credBudget: 5000, credMonths: 6, credBoost: 3 } },
+];
+const $ = id => document.getElementById(id);
+const state = { mode: "share", months: 12, on: new Set() };
+const fmtUSD = n => { const a = Math.abs(n); if (a >= 1e6) return "$" + (n/1e6).toFixed(2) + "M"; if (a >= 1e4) return "$" + Math.round(n/1e3).toLocaleString("en-US") + "k"; return "$" + Math.round(n).toLocaleString("en-US"); };
+const BASE_INPUTS = ["mixK3","mixK27","mixK26","take","markup","host","vol","growth"];
+const R_INPUTS = REWARDS.flatMap(r => r.inputs.map(i => i.id));
+
+// build reward cards once
+const card = r => `
+  <div class="rw" id="rw-${r.id}">
+    <label class="rw-head"><input type="checkbox" id="cb-${r.id}">
+      <span><span class="rw-title">${r.title}</span><br><span class="rw-desc" id="desc-${r.id}"></span></span></label>
+    <div class="rw-body" id="body-${r.id}" hidden>
+      <div class="fields">${r.inputs.map(i => `<div class="field"><label for="${i.id}" id="lab-${i.id}"></label><input id="${i.id}" type="number" min="0" step="${i.step}"></div>`).join("")}</div>
+      <div class="rw-gets">${r.gets}</div>
+    </div>
+  </div>`;
+$("rewards").innerHTML = REWARDS.filter(r => r.main).map(card).join("");
+$("rewardsMore").innerHTML = REWARDS.filter(r => !r.main).map(card).join("");
+
+PRESETS.forEach(p => $("preset").add(new Option(p.label, p.id)));
+$("preset").add(new Option("Custom", "custom"));
+
+function setSeg(attr, val) { document.querySelectorAll(`[data-${attr}]`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val)))); }
+function toCustom() { if ($("preset").value !== "custom") { $("preset").value = "custom"; $("presetDesc").textContent = "Your own terms."; } }
+function applyPreset(p) {
+  BASE_INPUTS.forEach(f => $(f).value = p[f]);
+  R_INPUTS.forEach(f => $(f).value = p.r[f] ?? RDEF[f]);
+  state.mode = p.mode; state.on = new Set(p.on);
+  REWARDS.forEach(r => $("cb-" + r.id).checked = state.on.has(r.id));
+  $("preset").value = p.id; $("presetDesc").textContent = p.desc; calc();
+}
+$("preset").addEventListener("change", () => { const p = PRESETS.find(x => x.id === $("preset").value); if (p) applyPreset(p); });
+document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { state.mode = b.dataset.mode; toCustom(); calc(); }));
+document.querySelectorAll("[data-m]").forEach(b => b.addEventListener("click", () => { state.months = +b.dataset.m; calc(); }));
+[...BASE_INPUTS, ...R_INPUTS].forEach(f => $(f).addEventListener("input", () => { toCustom(); calc(); }));
+REWARDS.forEach(r => $("cb-" + r.id).addEventListener("change", e => { e.target.checked ? state.on.add(r.id) : state.on.delete(r.id); toCustom(); calc(); }));
+
+function calc() {
+  const v = k => { const el = $(k); return el ? parseFloat(el.value) || 0 : 0; }, on = id => state.on.has(id);
+  const share = state.mode === "share", key = share ? "s" : "w";
+  setSeg("mode", state.mode); setSeg("m", state.months);
+  REWARDS.forEach(r => {
+    $("rw-" + r.id).classList.toggle("on", on(r.id));
+    $("body-" + r.id).hidden = !on(r.id);
+    $("desc-" + r.id).textContent = r.desc[key];
+    r.inputs.forEach(i => $("lab-" + i.id).textContent = typeof i.label === "string" ? i.label : i.label[key]);
+  });
+
+  const out = 0.2, hit = 0.5; // typical mix: 20% of tokens are answers, half the input repeats
+  const blended = m => (1 - out) * (hit * m.cache + (1 - hit) * m.in) + out * m.out;
+  const mix = { k3: Math.max(0, v("mixK3")), k27: Math.max(0, v("mixK27")), k26: Math.max(0, v("mixK26")) };
+  const mixTotal = mix.k3 + mix.k27 + mix.k26;
+  const list = mixTotal > 0 ? Object.entries(mix).reduce((a, [k, w]) => a + blended(MODELS[k]) * w, 0) / mixTotal : blended(MODELS.k3);
+  const price = list * (1 + v("markup") / 100);
+  [["k3","barK3"],["k27","barK27"],["k26","barK26"]].forEach(([k, id]) => $(id).style.width = (mixTotal > 0 ? mix[k] / mixTotal * 100 : 0) + "%");
+  $("mixNote").textContent = Math.round(mixTotal) === 100 ? ($("preset").value === "custom" ? "Your own mix." : "Typical mix for this partner type (estimate). Edit to set your own.") : `Adds up to ${Math.round(mixTotal)}%; scaled to 100% for the calculation.`;
+  $("mixNote").classList.toggle("warn", Math.round(mixTotal) !== 100);
+  $("modelPrice").textContent = `Average Kimi price ≈ $${list.toFixed(2)} per million tokens`;
+  $("takeLabel").textContent = share ? "Kimi's revenue share (%)" : "Partner's discount on Kimi's price (%)";
+  $("modeExplain").innerHTML = share
+    ? "The partner runs Kimi on <b>its own servers</b> and pays Kimi a % of what customers pay. Typical for clouds."
+    : "The partner <b>buys Kimi's API at a discount</b> and resells it. Kimi runs the servers. Typical for integrators and software companies.";
+  $("hostField").hidden = !share;
+
+  const pct = x => Math.max(0, Math.min(100, x)) / 100;
+  const take = v("take"), L = Math.max(1, Math.round(v("launchMonths"))), host = share ? Math.max(0, v("host")) : 0;
+  const vol0 = Math.max(0, v("vol")), g = v("growth") / 100;
+  const commitMonths = on("commit") ? Math.max(1, Math.round(v("commitYears"))) * 12 : 0;
+  const commitMin = on("commit") ? Math.max(0, v("commitMin")) : 0;
+  const inContract = i => i < commitMonths;
+  const ncShare = on("newcust") ? pct(v("ncShare")) : 0;
+
+  // What Kimi receives per $ of price: base rate, then each discount applied on top (they multiply)
+  const rateFor = (i, isGrowth, isNew) => {
+    let r = share ? pct(take) : 1 - pct(take);
+    const off = d => { r *= 1 - pct(d); };
+    if (on("growth") && isGrowth) off(v("growthTake"));
+    if (on("launch") && i < L) off(v("launchTake"));
+    if (on("commit") && inContract(i)) off(v("commitPts"));
+    if (isNew) off(v("ncPts"));
+    return r;
+  };
+  const kimiFor = (tokensB, rate) => tokensB * 1e3 * (share ? price : list) * rate;
+
+  const migB = on("migration") ? Math.max(0, v("migVol")) : 0, migM = Math.max(0, Math.round(v("migMonths")));
+  const rows = []; let vol = vol0 + migB, yearStartVol = vol0 + migB, yearKimi = 0;
+  for (let i = 0; i < state.months; i++) {
+    const base = on("growth") ? Math.min(vol, vol0) : vol, extra = on("growth") ? Math.max(0, vol - vol0) : 0;
+    let kimiPaid = 0;
+    for (const [tok, isG] of [[base, false], [extra, true]]) {
+      kimiPaid += kimiFor(tok * (1 - ncShare), rateFor(i, isG, false)) + kimiFor(tok * ncShare, rateFor(i, isG, true));
+    }
+    const floor = inContract(i) ? commitMin : 0;
+    const baseline = vol * 1e3 * (share ? price * pct(take) : list * (1 - pct(take)));
+    const discCost = Math.max(0, baseline - kimiPaid);
+    const minUsed = floor > kimiPaid; kimiPaid = Math.max(kimiPaid, floor);
+    const cust = vol * 1e3 * price, hostCost = vol * 1e3 * host;
+    const mdf = on("mdf") ? kimiPaid * pct(v("mdfPct")) : 0;
+    const credits = (on("credits") && i < Math.round(v("credMonths")) ? Math.max(0, v("credBudget")) : 0)
+      + (migB > 0 && i < migM ? migB * 1e3 * price * pct(v("migPct")) : 0);
+    yearKimi += kimiPaid;
+    let rebate = 0;
+    if (on("rebate") && (i + 1) % 12 === 0) {
+      const growthYr = yearStartVol > 0 ? (vol / yearStartVol - 1) * 100 : 0;
+      if (growthYr >= v("rebateTarget")) rebate = yearKimi * pct(v("rebatePct"));
+      yearStartVol = vol * (1 + g); yearKimi = 0;
+    }
+    const kimiNet = kimiPaid - mdf - credits - rebate;
+    rows.push({ cust, kimiPaid, kimiNet, discCost, baseline, host: hostCost, profit: cust - kimiPaid - hostCost + rebate, mdfCred: mdf + credits, rebate, minUsed, vol });
+    // growth for next month, plus boosts
+    let gm = g;
+    if (on("credits") && i < Math.round(v("credMonths"))) gm += v("credBoost") / 100;
+    vol *= 1 + gm;
+  }
+  const sum = k => rows.reduce((a, r) => a + r[k], 0);
+  const C = sum("cust"), K = sum("kimiNet"), KP = sum("kimiPaid"), P = sum("profit"), V = sum("vol");
+  const RW = sum("discCost") + sum("mdfCred") + sum("rebate"), BL = sum("baseline"), last = rows[rows.length - 1];
+  const margin = C > 0 ? P / C * 100 : 0;
+
+  $("kimiTotal").textContent = fmtUSD(K);
+  $("kimiSub").textContent = `over ${state.months} months, after rewards · last month ${fmtUSD(last.kimiNet)}`;
+  $("custTotal").textContent = fmtUSD(C);
+  $("partnerProfit").textContent = fmtUSD(P);
+  $("partnerMargin").textContent = margin.toFixed(0) + "%";
+  $("kimiPer100").textContent = "$" + (C > 0 ? K / C * 100 : 0).toFixed(0);
+  $("rewardCost").textContent = fmtUSD(RW);
+  $("lastVol").textContent = last.vol.toFixed(last.vol >= 10 ? 0 : 1) + "B";
+
+  // Month 1, step by step
+  const r0 = rows[0], f = fmtUSD, items = [];
+  items.push(`Customers use <b>${vol0}B tokens</b> and pay the partner <b>${f(r0.cust)}</b>.`);
+  items.push(share ? `The partner pays Kimi its share → <b class="k">${f(r0.kimiPaid)}</b>.` : `The partner buys from Kimi at a discount → <b class="k">${f(r0.kimiPaid)}</b> to Kimi.`);
+  if (r0.minUsed) items.push(`The guaranteed minimum applies, because the normal amount would be lower.`);
+  if (share) items.push(`The partner's servers cost <b class="h">${f(r0.host)}</b>.`);
+  if (migB > 0) items.push(`${migB}B tokens move over from other models; Kimi covers ${v("migPct")}% of that bill for ${migM} months.`);
+  if (r0.mdfCred > 0) items.push(`Kimi spends <b class="h">${f(r0.mdfCred)}</b> on credits and marketing.`);
+  items.push(`The partner keeps <b class="p">${f(r0.profit)}</b>; Kimi keeps <b class="k">${f(r0.kimiNet)}</b>.`);
+  const active = REWARDS.filter(r => on(r.id)).map(r => r.title.toLowerCase());
+  const moreOn = REWARDS.filter(r => !r.main && on(r.id)).length;
+  $("moreCount").textContent = moreOn ? `${moreOn} selected` : "5 options";
+
+  if (active.length) items.push(`Rewards active: ${active.join(", ")}.`);
+  if (on("commit") && commitMonths < state.months) items.push(`The contract ends after month ${commitMonths}; normal terms apply after that.`);
+  $("flow").innerHTML = items.map(x => `<li>${x}</li>`).join("");
+
+  drawChart(rows, on("launch") ? L : 0, commitMonths);
+  health({ share, margin, keep: list > 0 && V > 0 ? K / (V * 1e3) / list * 100 : 0, rwShare: BL > 0 ? RW / BL * 100 : 0, nRewards: active.length, commitMin, gotRebate: sum("rebate") > 0, rebateOn: on("rebate") });
+}
+
+function drawChart(rows, L, CM) {
+  const W = 520, H = 210, Lp = 48, R = 8, T = 10, B = 26, n = rows.length;
+  const stack = r => [[Math.max(0, r.kimiNet), "#3b82f6"], [Math.max(0, r.profit), "#93c5fd"], [r.host, "#1e3a8a"], [r.mdfCred, "#64748b"]];
+  const max = Math.max(1, ...rows.map(r => stack(r).reduce((a, [x]) => a + x, 0)));
+  const p10 = Math.pow(10, Math.floor(Math.log10(max)));
+  const nice = [1, 2, 2.5, 5, 10].map(s => s * p10).find(x => x >= max);
+  const y = val => T + (H - T - B) * (1 - val / nice), bw = (W - Lp - R) / n;
+  let svg = "";
+  for (let i = 0; i <= 4; i++) { const val = nice * i / 4, yy = y(val).toFixed(1); svg += `<line x1="${Lp}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="#262626"/><text x="${Lp - 6}" y="${(+yy + 3).toFixed(1)}" text-anchor="end">${fmtUSD(val)}</text>`; }
+  if (L > 0 && L < n) { const x = Lp + L * bw; svg += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${T}" y2="${H - B}" stroke="#8a8a8a" stroke-dasharray="3 3"/><text x="${(x + 4).toFixed(1)}" y="${T + 9}">launch ends</text>`; }
+  if (CM > 0 && CM < n) { const x = Lp + CM * bw; svg += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${T}" y2="${H - B}" stroke="#8a8a8a" stroke-dasharray="3 3"/><text x="${(x + 4).toFixed(1)}" y="${T + 21}">contract ends</text>`; }
+  rows.forEach((r, i) => {
+    const x = Lp + i * bw + bw * 0.15, w = bw * 0.7; let base = 0;
+    stack(r).forEach(([val, col]) => { if (val <= 0) return; const y1 = y(base + val), y0 = y(base);
+      svg += `<rect x="${x.toFixed(1)}" y="${y1.toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(0, y0 - y1).toFixed(1)}" fill="${col}"/>`; base += val; });
+    if (r.rebate > 0) svg += `<text x="${(Lp + i * bw + bw / 2).toFixed(1)}" y="${(y(base) - 4).toFixed(1)}" text-anchor="middle" fill="#93c5fd">rebate</text>`;
+    if (n <= 12 || (i + 1) % 3 === 0) svg += `<text x="${(Lp + i * bw + bw / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle">${i + 1}</text>`;
+  });
+  $("chart").innerHTML = svg;
+}
+
+function health({ share, margin, keep, rwShare, nRewards, commitMin, gotRebate, rebateOn }) {
+  const reasons = []; let pS, kS;
+  if (margin >= 20) { pS = 2; reasons.push(`Partner keeps ${margin.toFixed(0)}% of sales: enough reason to actively sell Kimi.`); }
+  else if (margin >= 5) { pS = 1; reasons.push(`Partner keeps only ${margin.toFixed(0)}%: they may list Kimi but won't push it.`); }
+  else { pS = 0; reasons.push(`Partner keeps ${margin.toFixed(0)}%: the deal loses them money.`); }
+  if (share) {
+    if (keep >= 20) { kS = 2; reasons.push(`After rewards, Kimi earns about ${keep.toFixed(0)}% of its own price per token, without paying for servers.`); }
+    else if (keep >= 10) { kS = 1; reasons.push(`After rewards, Kimi earns only about ${keep.toFixed(0)}% of its own price per token.`); }
+    else { kS = 0; reasons.push(`After rewards, Kimi earns under 10% of its own price per token.`); }
+  } else {
+    if (keep >= 75) { kS = 2; reasons.push(`After rewards, Kimi earns about ${keep.toFixed(0)}% of its price: a normal reseller level.`); }
+    else if (keep >= 60) { kS = 1; reasons.push(`After rewards, Kimi earns about ${keep.toFixed(0)}% of its price, and still pays for servers.`); }
+    else { kS = 0; reasons.push(`After rewards, Kimi earns ${keep.toFixed(0)}% of its price while paying for servers: likely below cost.`); }
+  }
+  if (rwShare > 0) reasons.push(`Rewards reduce Kimi's revenue by ${rwShare.toFixed(0)}% versus standard terms.`);
+  if (rwShare > 35) kS = Math.min(kS, 1);
+  if (nRewards > 3) { reasons.push(`${nRewards} rewards at once is hard for a partner to follow; 2–3 is usually enough.`); kS = Math.min(kS, 1); }
+  if (commitMin > 0) reasons.push(`The guaranteed minimum protects Kimi while volume ramps up.`);
+  if (rebateOn) reasons.push(gotRebate ? "The partner hits its growth target and earns the year-end rebate." : "The partner misses the growth target, so no rebate is paid.");
+  const worst = Math.min(pS, kS);
+  $("health").className = "health " + ["red", "yellow", "green"][worst];
+  $("hArrow").textContent = ["↘", "→", "↗"][worst];
+  $("hTitle").textContent = ["One side loses", "Workable, needs tuning", "Win-win deal"][worst];
+  let next;
+  if (pS < kS) next = "<b>Fix:</b> add a launch or growth discount, lower Kimi's share, or let the partner charge a premium.";
+  else if (kS < pS) next = rwShare > 35 ? "<b>Fix:</b> discounts are too generous. Drop one, shorten the launch, or ask for a guaranteed minimum in return." : "<b>Fix:</b> raise Kimi's share, add a commitment with a guaranteed minimum, or switch to revenue share.";
+  else if (worst === 2) next = "<b>Next step:</b> sign a 12–24 month term and agree joint marketing.";
+  else next = "<b>Fix:</b> both sides are squeezed. Shift the mix toward K2.7 Code or K2.6, or raise the partner's price.";
+  $("hReasons").innerHTML = reasons.map(x => `<li>${x}</li>`).join("");
+  $("hNext").innerHTML = next;
+}
+
+applyPreset(PRESETS[0]);
+</script>
+<script>
+(function () {
+  const c = document.getElementById("sky"), ctx = c.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const P = 3; let w, h, stars = [], t = 0;
+  function size() {
+    w = Math.ceil(innerWidth / P); h = Math.ceil(innerHeight / P);
+    c.width = w; c.height = h;
+    stars = Array.from({ length: Math.round(w * h / 140) }, () => ({ x: Math.random() * w | 0, y: Math.random() * h | 0, b: Math.random(), s: Math.random() * 0.04 + 0.01 }));
+    draw();
+  }
+  const bayer = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  function draw() {
+    const img = ctx.createImageData(w, h), d = img.data;
+    const mx = w * 0.18, my = h * 1.02, r = Math.min(w, h) * 0.55;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let v = 0;
+      const gx = (x - w * 0.72) / (w * 0.22), gy = (y - h * 0.32) / (h * 0.09);
+      v += Math.exp(-(gx * gx + gy * gy)) * 0.28;
+      const dx = x - mx, dy = y - my, dd = Math.sqrt(dx * dx + dy * dy);
+      if (dd < r) { const shade = 0.12 + 0.28 * Math.max(0, (dx + dy * 0.4) / r + 0.6) + 0.08 * Math.sin(x * 0.21) * Math.cos(y * 0.17); v = Math.max(v, shade * 0.75); }
+      const th = (bayer[y & 3][x & 3] + 0.5) / 16, on = v > th ? 1 : 0;
+      const i = (y * w + x) * 4, g = on ? 70 : 0;
+      d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = 255;
+    }
+    for (const st of stars) { const tw = reduce ? st.b : (Math.sin(t * st.s * 6 + st.b * 10) + 1) / 2; const g = 90 + tw * 165; const i = (st.y * w + st.x) * 4; d[i] = d[i + 1] = d[i + 2] = g; }
+    ctx.putImageData(img, 0, 0);
+  }
+  addEventListener("resize", size);
+  size();
+  if (!reduce) setInterval(() => { t++; draw(); }, 500);
+})();
+</script>
+<script>
+(function () {
+  // Original pixel sprites: a crescent-moon creature (Kimi) and a padlocked box (ChatGPT, as a closed model)
+  const ME = ["........................", "..........cccccc......y.", "........cchhhcccc.......", "......cchhcccccccc......", ".....chhcccccccc........", "....chccccccccc.......y.", "...chcccccccccc.........", "...hcccccccccc..........", "..chccccccccc.....y.....", "..cccckcccckc...........", "..cccckcccckc...........", "..ccccccccccc...........", "..ccpcckkcccpc..........", "..cccccccccccc..........", "..scccccccccccc.........", "...scccccccccccc......cc", "...sscccccccccccc...ccc.", "....ssscccccccccccccccc.", ".....sssscccccccccccss..", "......ssssssccccccss....", "........ssssssssss......", "...........ssss.........", "........................", "........................"];
+  const FOE = ["......kkkk......",".....k....k.....",".....k....k.....",".....k....k.....","..dddddddddddd..","..dggggggggggd..","..dgrrggggrrgd..","..dgrrggggrrgd..","..dggggggggggd..","..dgggkkkkgggd..","..dgggkkkkgggd..","..dggggkkggggd..","..dggggggggggd..","..dddddddddddd..","...d........d...","..dd........dd.."];
+  const PAL = { c: "#93c5fd", s: "#3b82f6", h: "#e0f2fe", w: "#ffffff", k: "#0b1226", p: "#f9a8d4", y: "#fde68a", d: "#6b7280", g: "#2a2a2a", r: "#f87171" };
+  function paint(id, rows) { const c = document.getElementById(id), g = c.getContext && c.getContext("2d"); if (!g) return; g.clearRect(0, 0, 48, 48);
+    const px = 48 / rows.length;
+    rows.forEach((r, y) => [...r].forEach((ch, x) => { if (PAL[ch]) { g.fillStyle = PAL[ch]; g.fillRect(x * px, y * px, px, px); } })); }
+  paint("meSprite", ME); paint("foeSprite", FOE);
+
+  const $ = id => document.getElementById(id), rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const MOVE_LIST = [["swarm", "Agent Swarm"], ["open", "Open Model"], ["context", "1M Token"], ["price", "Price Cut"]];
+  const st = { me: 100, foe: 100, charge: false, weaken: 0, busy: false, sel: 0, over: false };
+  const log = t => $("duelLog").textContent = t;
+  function bars() { [["me", "meHp", "meHpN"], ["foe", "foeHp", "foeHpN"]].forEach(([k, bar, n]) => { const v = Math.max(0, st[k]); $(bar).style.width = v + "%"; $(bar).classList.toggle("low", v <= 25); $(n).textContent = v; }); }
+  function hit(side) { const el = document.querySelector(".fighter." + side); el.classList.remove("hit"); void el.offsetWidth; el.classList.add("hit"); }
+  function menu() {
+    if (st.over) { $("moves").innerHTML = '<button type="button" class="wide" id="again">Play again</button>'; $("again").addEventListener("click", reset); return; }
+    $("moves").innerHTML = MOVE_LIST.map(([k, l], i) => `<button type="button" data-i="${i}" ${st.busy ? "disabled" : ""}>${l}</button>`).join("");
+    document.querySelectorAll("#moves [data-i]").forEach(b => b.addEventListener("click", () => { st.sel = +b.dataset.i; play(); }));
+  }
+  function reset() { Object.assign(st, { me: 100, foe: 100, charge: false, weaken: 0, busy: false, sel: 0, over: false }); bars(); log("A wild ChatGPT appears! Choose a move."); menu(); }
+  function end(text) { st.over = true; st.busy = false; log(text); menu(); }
+  const MOVES = {
+    swarm:   () => { const hits = [rnd(4, 7), rnd(4, 7), rnd(4, 7)]; let d = hits.reduce((x, y) => x + y, 0); if (st.charge) { d *= 2; st.charge = false; } st.foe -= d; hit("foe"); return `Kimi used Agent Swarm! Many agents work in parallel: 3 hits, ${d} damage.`; },
+    open:    () => { let d = rnd(16, 22); if (st.charge) { d *= 2; st.charge = false; } st.foe -= d; hit("foe"); return `Kimi used Open Model! Anyone can download and run it. ${d} damage.`; },
+    context: () => { st.charge = true; st.me = Math.min(100, st.me + 6); return "Kimi used 1M Token! It reads everything at once. Next attack doubles, +6 HP."; },
+    price:   () => { st.foe -= 6; st.weaken = 3; hit("foe"); return "Kimi used Price Cut! Same quality, lower bill. 6 damage, ChatGPT weakened for 3 turns."; },
+  };
+  const FOE_MOVES = [
+    () => [rnd(13, 19), "ChatGPT used Price Hike! {d} damage."],
+    () => [rnd(9, 13), "ChatGPT used Rate Limit! {d} damage."],
+    () => { st.foe = Math.min(100, st.foe + 6); return [rnd(6, 9), "ChatGPT used Vendor Lock-in! {d} damage, +6 HP."]; },
+    () => Math.random() < 0.4 ? [0, "ChatGPT used Black Box… nobody can see inside. It missed!"] : [rnd(18, 22), "ChatGPT used Black Box! {d} damage."],
+  ];
+  function play() {
+    if (st.over) { reset(); return; }
+    if (st.busy) return;
+    st.busy = true; log(MOVES[MOVE_LIST[st.sel][0]]()); bars(); menu();
+    if (st.foe <= 0) { st.foe = 0; bars(); return end("ChatGPT fainted! Kimi wins: open, cheaper, agentic, and 1M tokens of context."); }
+    setTimeout(() => {
+      let [d, t] = FOE_MOVES[rnd(0, FOE_MOVES.length - 1)]();
+      if (st.weaken > 0 && d > 0) { d = Math.round(d * 0.6); st.weaken--; t += " (weakened)"; }
+      st.me -= d; if (d > 0) hit("me");
+      log(t.replace("{d}", d)); bars();
+      if (st.me <= 0) { st.me = 0; bars(); return end("Kimi fainted… tip: 1M Token first, then Agent Swarm or Open Model, for a double hit."); }
+      st.busy = false; menu();
+    }, 900);
+  }
+  reset();
+})();
+</script>

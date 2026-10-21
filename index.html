@@ -1,0 +1,210 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta charset="utf-8">
+<title>Kimi BD Toolkit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One long page: intro + sticky section nav, then the three tools stacked as sections.
+   Each tool is its own page in an auto-height frame so their scripts and IDs never collide.
+   Single dark theme, same as the tools. */
+:root {
+  color-scheme: dark;
+  --bg: #000; --panel: rgba(8, 8, 10, 0.86); --ink: #f2f2f2; --muted: #8a8a8a; --dim: #3c3c3c; --line: #4a4a4a;
+  --accent: #fff; --blue: #3b82f6; --blue-l: #93c5fd;
+  --pixel: "Silkscreen", "Courier New", monospace;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --cut: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--mono); font-size: 14px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: 56px; position: relative;
+}
+#sky { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; image-rendering: pixelated; }
+.wrap { position: relative; z-index: 1; max-width: 1120px; margin: 0 auto; }
+.intro { padding: 48px 0 28px; display: flex; flex-direction: column; gap: 14px; align-items: flex-start; }
+.tag { font-family: var(--pixel); font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+h1 { font-weight: 600; font-size: clamp(32px, 6vw, 56px); margin: 0; letter-spacing: -0.02em; line-height: 1.05; text-wrap: balance; }
+h1 .br { color: var(--muted); }
+.lead { margin: 0; color: var(--muted); max-width: 66ch; font-size: 15px; }
+.lead b { color: var(--ink); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; width: 100%; margin-top: 10px; }
+@media (max-width: 800px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+.card { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); clip-path: var(--cut); padding: 18px; color: inherit; text-decoration: none; }
+.card:hover { border-color: var(--blue); }
+.card:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.card .n { font-family: var(--pixel); font-size: 11px; color: var(--blue-l); }
+.card .t { font-weight: 600; font-size: 16px; }
+.card .q { color: var(--muted); font-size: 13px; }
+.card .go { margin-top: auto; padding-top: 8px; font-family: var(--pixel); font-size: 11px; color: var(--ink); }
+nav.top { position: sticky; top: 0; z-index: 5; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: rgba(0, 0, 0, 0.88); backdrop-filter: blur(4px); border-bottom: 1px solid var(--line); }
+nav.top .in { max-width: 1120px; margin: 0 auto; display: flex; gap: 6px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+nav.top .in::-webkit-scrollbar { display: none; }
+nav.top a.me { margin-right: auto; color: var(--ink); border-color: var(--line); }
+nav.top a.me[aria-current="true"] { color: #000; background: var(--accent); border-color: var(--accent); }
+.back-unused { font-family: var(--mono); font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 5px 10px; margin-right: 4px; }
+.back:hover { border-color: var(--accent); }
+.back:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.view-home { padding-bottom: 8px; }
+nav.top a { font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-decoration: none; padding: 6px 10px; border: 1px solid transparent; white-space: nowrap; }
+nav.top a:hover { color: var(--ink); border-color: var(--line); }
+nav.top a[aria-current="true"] { color: #000; background: var(--accent); font-weight: 600; }
+nav.top a:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+section.tool { padding-top: 20px; }
+.intro { padding-top: 56px !important; }
+.sechead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.sechead .n { font-family: var(--pixel); font-size: 12px; color: var(--blue-l); }
+.sechead .q { color: var(--muted); font-size: 13px; }
+iframe { display: block; width: 100%; border: 0; height: 900px; background: transparent; color-scheme: dark; }
+.flow { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; width: 100%; margin-top: 10px; align-items: stretch; }
+.flow .arrow { align-self: center; font-size: 22px; color: var(--blue-l); }
+@media (max-width: 800px) { .flow { grid-template-columns: minmax(0, 1fr); } .flow .arrow { justify-self: center; transform: rotate(90deg); } }
+.start { align-self: center; margin-top: 8px; font-family: var(--mono); font-weight: 600; font-size: 15px; color: #000; background: var(--accent); text-decoration: none; padding: 12px 18px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); }
+.start:hover { background: var(--blue-l); }
+.start:focus-visible, .stepbtn:focus-visible, .nexttop:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+nav.top .sep { color: var(--dim); font-family: var(--mono); }
+nav.top a b { color: var(--blue-l); margin-right: 4px; }
+nav.top a[aria-current="true"] b { color: #1e3a8a; }
+.navbtn { font-family: var(--mono); font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 5px 10px; white-space: nowrap; }
+.navbtn:hover { border-color: var(--accent); }
+.navbtn:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+.stepinfo { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; margin-left: 6px; min-width: 0; }
+.nexttop { margin-left: auto; white-space: nowrap; border-color: var(--accent) !important; color: #000 !important; background: var(--accent); font-weight: 600; font-family: var(--mono); font-size: 13px; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 5px 10px; }
+.nexttop:hover { background: var(--blue-l) !important; border-color: var(--blue-l) !important; }
+.stepnav { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 8px; }
+.stepbtn { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); text-decoration: none; font-weight: 600; font-size: 16px; clip-path: var(--cut); }
+.stepbtn small { font-family: var(--pixel); font-weight: 400; font-size: 11px; color: var(--muted); }
+.stepbtn.next { text-align: right; border-color: var(--blue); }
+.stepbtn.next small { color: var(--blue-l); }
+.stepbtn:hover { border-color: var(--accent); }
+footer { margin-top: 40px; font-size: 12px; color: var(--ink); text-align: right; }
+</style>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header class="intro view-home" id="home">
+    <span class="tag">&lt;&lt; Moonshot AI · Business Builder &gt;&gt;</span>
+    <h1><span class="br">[</span> Kimi BD Toolkit <span class="br">]</span></h1>
+    <p class="lead">How I would build Kimi's business, in three steps: <b>find</b> the right accounts, <b>win</b> the deal on numbers, then <b>scale</b> through partners.</p>
+    <div class="flow">
+      <a class="card" href="#tracker"><span class="n">Step 1 · Find</span><span class="t">Model Availability Tracker</span><span class="q">490 target accounts: who uses which AI today, where Kimi is missing, which to call first.</span></a>
+      <span class="arrow" aria-hidden="true">&rarr;</span>
+      <a class="card" href="#deal"><span class="n">Step 2 · Win</span><span class="t">Kimi Deal Calculator</span><span class="q">For one customer workload: what Kimi costs vs. the model they use now, and whether the deal is healthy.</span></a>
+      <span class="arrow" aria-hidden="true">&rarr;</span>
+      <a class="card" href="#partner"><span class="n">Step 3 · Scale</span><span class="t">Kimi Partner Simulator</span><span class="q">Revenue share or wholesale, plus rewards: does the partnership work for both sides over 12 to 36 months?</span></a>
+    </div>
+    <a class="start" href="#tracker">Start: Model Availability Tracker &rarr;</a>
+  </header>
+
+  <section class="tool" id="tracker" aria-label="Model Availability Tracker">
+    <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#home">&larr; Back</a><span class="stepinfo"><span class="n">Step 1 of 3 · Find</span><span class="q">Where should Kimi go next?</span></span><a class="nexttop" href="#deal">Next: Deal Calculator &rarr;</a></div>
+    <iframe data-src="tracker.html" title="Model Availability Tracker"></iframe>
+    <div class="stepnav"><a class="stepbtn" href="#home"><small>&larr; Back</small>Home</a><a class="stepbtn next" href="#deal"><small>Next · Step 2 &rarr;</small>Deal Calculator</a></div>
+  </section>
+
+  <section class="tool" id="deal" aria-label="Kimi Deal Calculator">
+    <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#tracker" title="Back to Tracker">&larr; Back</a><span class="stepinfo"><span class="n">Step 2 of 3 · Win</span><span class="q">Does Kimi win this customer's workload?</span></span><a class="nexttop" href="#partner">Next: Partner Simulator &rarr;</a></div>
+    <iframe data-src="deal.html" title="Kimi Deal Calculator"></iframe>
+    <div class="stepnav"><a class="stepbtn" href="#tracker"><small>&larr; Previous · Step 1</small>Tracker</a><a class="stepbtn next" href="#partner"><small>Next · Step 3 &rarr;</small>Partner Simulator</a></div>
+  </section>
+
+  <section class="tool" id="partner" aria-label="Kimi Partner Simulator">
+    <div class="sechead"><a class="navbtn" href="#home">Home</a><a class="navbtn" href="#deal" title="Back to Deal Calculator">&larr; Back</a><span class="stepinfo"><span class="n">Step 3 of 3 · Scale</span><span class="q">How does a partner deal scale, and is it fair to both sides?</span></span><a class="nexttop" href="#home">Back to start &#8634;</a></div>
+    <iframe data-src="partner.html" title="Kimi Partner Simulator"></iframe>
+    <div class="stepnav"><a class="stepbtn" href="#deal"><small>&larr; Previous · Step 2</small>Deal Calculator</a><a class="stepbtn next" href="#home"><small>Done</small>Thank you!</a></div>
+  </section>
+
+  <footer>Unofficial tools by Marco Morello</footer>
+</div>
+
+<script>
+/* Fit each embedded tool to its content and blend it into this page. */
+const EMBED_CSS = `html, body { background: transparent !important; }
+#sky, footer { display: none !important; }
+body { min-height: 0 !important; padding: 12px 0 8px !important; }`;
+document.querySelectorAll("iframe").forEach(fr => {
+  const fit = () => {
+    if (fr.closest("[hidden]") || !fr.src) return;
+    try {
+      const d = fr.contentDocument; if (!d || !d.body) return;
+      const wrap = d.querySelector(".wrap") || d.body;
+      const h = Math.ceil(wrap.getBoundingClientRect().height) + 24;
+      if (Math.abs(fr.offsetHeight - h) > 2) fr.style.height = h + "px";
+    } catch (e) {}
+  };
+  fr._fit = fit;
+  const setup = () => {
+    try {
+      const d = fr.contentDocument; if (!d || !d.head) return;
+      if (!d.getElementById("embed-css")) { const st = d.createElement("style"); st.id = "embed-css"; st.textContent = EMBED_CSS; d.head.appendChild(st); }
+      const wrap = d.querySelector(".wrap") || d.body;
+      if ("ResizeObserver" in window) new fr.contentWindow.ResizeObserver(fit).observe(wrap);
+      fit(); setTimeout(fit, 400); setTimeout(fit, 1500);
+    } catch (e) {}
+  };
+  fr.addEventListener("load", setup);
+  if (fr.contentDocument && fr.contentDocument.readyState === "complete") setup();
+});
+
+/* One view at a time: home, or a single tool. Tools load on first open and keep their state after. */
+const VIEWS = ["home", "tracker", "deal", "partner"];
+const links = [...document.querySelectorAll("nav.top a")];
+function show(id, push) {
+  if (!VIEWS.includes(id)) id = "home";
+  VIEWS.forEach(v => { document.getElementById(v).hidden = v !== id; });
+  links.forEach(a => a.setAttribute("aria-current", String(a.dataset.s === id)));
+  const fr = id !== "home" && document.querySelector(`#${id} iframe`);
+  if (fr && !fr.src) fr.src = fr.dataset.src;
+  if (fr && fr._fit) { fr._fit(); setTimeout(fr._fit, 50); }
+  if (push && location.hash !== "#" + id) history.pushState(null, "", "#" + id);
+  window.scrollTo(0, 0);
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest('a[href^="#"]'); if (!a) return;
+  const id = a.getAttribute("href").slice(1);
+  if (VIEWS.includes(id)) { e.preventDefault(); show(id, true); }
+});
+addEventListener("popstate", () => show(location.hash.slice(1)));
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+show(location.hash.slice(1) || "home");
+addEventListener("load", () => window.scrollTo(0, 0));
+</script>
+<script>
+(function () {
+  const c = document.getElementById("sky"), ctx = c.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const P = 3; let w, h, stars = [], t = 0;
+  function size() {
+    w = Math.ceil(innerWidth / P); h = Math.ceil(innerHeight / P);
+    c.width = w; c.height = h;
+    stars = Array.from({ length: Math.round(w * h / 140) }, () => ({ x: Math.random() * w | 0, y: Math.random() * h | 0, b: Math.random(), s: Math.random() * 0.04 + 0.01 }));
+    draw();
+  }
+  const bayer = [[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+  function draw() {
+    const img = ctx.createImageData(w, h), d = img.data;
+    const mx = w * 0.18, my = h * 1.02, r = Math.min(w, h) * 0.55;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let v = 0;
+      const gx = (x - w * 0.72) / (w * 0.22), gy = (y - h * 0.32) / (h * 0.09);
+      v += Math.exp(-(gx * gx + gy * gy)) * 0.28;
+      const dx = x - mx, dy = y - my, dd = Math.sqrt(dx * dx + dy * dy);
+      if (dd < r) { const shade = 0.12 + 0.28 * Math.max(0, (dx + dy * 0.4) / r + 0.6) + 0.08 * Math.sin(x * 0.21) * Math.cos(y * 0.17); v = Math.max(v, shade * 0.75); }
+      const th = (bayer[y & 3][x & 3] + 0.5) / 16, on = v > th ? 1 : 0;
+      const i = (y * w + x) * 4, g = on ? 70 : 0;
+      d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = 255;
+    }
+    for (const st of stars) { const tw = reduce ? st.b : (Math.sin(t * st.s * 6 + st.b * 10) + 1) / 2; const g = 90 + tw * 165; const i = (st.y * w + st.x) * 4; d[i] = d[i + 1] = d[i + 2] = g; }
+    ctx.putImageData(img, 0, 0);
+  }
+  addEventListener("resize", size);
+  size();
+  if (!reduce) setInterval(() => { t++; draw(); }, 500);
+})();
+</script>
+
+</body></html>
